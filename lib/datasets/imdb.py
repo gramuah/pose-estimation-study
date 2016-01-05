@@ -76,7 +76,7 @@ class imdb(object):
 
     @property
     def num_images(self):
-      return len(self.image_index)
+        return len(self.image_index)
 
     def image_path_at(self, i):
         raise NotImplementedError
