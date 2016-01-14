@@ -19,10 +19,10 @@ import cPickle
 import subprocess
 
 class pascal_3Dplus(datasets.imdb):
-    def __init__(self, image_set, year, devkit_path=None):
-        datasets.imdb.__init__(self, 'voc_' + year + '_' + image_set)
-        self._year = year
-        self._image_set = image_set
+    def __init__(self, devkit_path=None):
+        datasets.imdb.__init__(self, '3Dplus')
+        self._year = 2013
+        self._image_set = '3Dplus' 
         self._pascal_path = self._get_default_path() if devkit_path is None \
                             else devkit_path
         self._classes = ('__background__', # always index 0
@@ -55,8 +55,15 @@ class pascal_3Dplus(datasets.imdb):
         """
         Construct an image path from the image's "index" identifier.
         """
+        
+        #is Imagenet?
+        if 'imagenet' in index:
+            im_ext = ".JPEG" 
+        else:
+            im_ext = ".jpg"
+        
         image_path = os.path.join(self._pascal_path, 'Images',
-                                  index)
+                                  index + im_ext)
         assert os.path.exists(image_path), \
                 'Path does not exist: {}'.format(image_path)
         return image_path
@@ -84,14 +91,8 @@ class pascal_3Dplus(datasets.imdb):
             last_ = f_name.rfind('_')
             folder_name = f_name[last_slash:last_]
             
-            #is Imagenet?
-            if 'imagenet' in folder_name:
-                im_ext = ".JPG" 
-            else:
-                im_ext = ".jpg"
-            
             with open(f_name) as f:
-                image_index = [ os.path.join( folder_name, x.strip() + im_ext ) for x in f.readlines()]
+                image_index = [ os.path.join( folder_name, x.strip() ) for x in f.readlines() ]
             
             image_names += image_index
             
@@ -187,22 +188,19 @@ class pascal_3Dplus(datasets.imdb):
 
     def _load_pascal_annotation(self, index):
         """
-        Load image and bounding boxes info from XML file in the PASCAL VOC
+        Load image and bounding boxes info from .mat file in the PASCAL3D
         format.
         """
-        filename = os.path.join(self._pascal_path, 'Annotations', index + '.xml')
-        # print 'Loading: {}'.format(filename)
-        def get_data_from_tag(node, tag):
-            return node.getElementsByTagName(tag)[0].childNodes[0].data
-
-        with open(filename) as f:
-            data = minidom.parseString(f.read())
-
-        objs = data.getElementsByTagName('object')
+        filename = os.path.join(self._pascal_path, 'Annotations', index + '.mat')
+        raw_data = sio.loadmat(filename, struct_as_record=False, squeeze_me=True)
+    
+        objs = raw_data['record'].objects if hasattr(raw_data['record'].objects, '__iter__') else [raw_data['record'].objects] 
+        im_size = raw_data['record'].size
+        
         if not self.config['use_diff']:
             # Exclude the samples labeled as difficult
             non_diff_objs = [obj for obj in objs
-                             if int(get_data_from_tag(obj, 'difficult')) == 0]
+                             if int( obj.difficult ) == 0]
             if len(non_diff_objs) != len(objs):
                 print 'Removed {} difficult objects' \
                     .format(len(objs) - len(non_diff_objs))
@@ -215,14 +213,21 @@ class pascal_3Dplus(datasets.imdb):
 
         # Load object bounding boxes into a data frame.
         for ix, obj in enumerate(objs):
+            bbox = obj.bbox
             # Make pixel indexes 0-based
-            x1 = float(get_data_from_tag(obj, 'xmin')) - 1
-            y1 = float(get_data_from_tag(obj, 'ymin')) - 1
-            x2 = float(get_data_from_tag(obj, 'xmax')) - 1
-            y2 = float(get_data_from_tag(obj, 'ymax')) - 1
-            cls = self._class_to_ind[
-                    str(get_data_from_tag(obj, "name")).lower().strip()]
-            boxes[ix, :] = [x1, y1, x2, y2]
+            x1 = float( bbox[0] ) - 1
+            y1 = float( bbox[1] ) - 1
+            x2 = float( bbox[2] ) - 1
+            y2 = float( bbox[3] ) - 1
+            cls = self._class_to_ind[str( getattr(obj, 'class') )]
+
+            # Rectify boxes to fit withing the image. PASCAL3D+ contains bbox out of the image range!!
+            aux_box = np.zeros_like(bbox)
+            aux_box[0] = max(x1, 0)
+            aux_box[1] = max(y1, 0)
+            aux_box[2] = min(x2, im_size.width - 1)
+            aux_box[3] = min(y2, im_size.height - 1)
+            boxes[ix, :] = np.asarray( aux_box, np.uint16 )
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
 
@@ -239,9 +244,13 @@ class pascal_3Dplus(datasets.imdb):
         if use_salt:
             comp_id += '-{}'.format(os.getpid())
 
-        # VOCdevkit/results/VOC2007/Main/comp4-44503_det_test_aeroplane.txt
-        path = os.path.join(self._pascal_path, 'results', 'VOC' + self._year,
-                            'Main', comp_id + '_')
+        # Create results folder if not exist
+        results_path = os.path.join(self._get_default_path(), 'results')
+        if not os.path.exists( results_path ):
+            os.makedirs( results_path )
+
+        # PASCAL3D+/results/comp4-44503_det_test_aeroplane.txt
+        path = os.path.join(results_path, comp_id + '_')
         for cls_ind, cls in enumerate(self.classes):
             if cls == '__background__':
                 continue
@@ -287,6 +296,6 @@ class pascal_3Dplus(datasets.imdb):
             self.config['cleanup'] = True
 
 if __name__ == '__main__':
-    d = datasets.pascal_voc('trainval', '2007')
+    d = datasets.pascal_3Dplus('trainval', '2007')
     res = d.roidb
     from IPython import embed; embed()

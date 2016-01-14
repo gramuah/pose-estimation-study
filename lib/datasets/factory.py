@@ -4,11 +4,11 @@
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Ross Girshick
 # --------------------------------------------------------
-
 """Factory method for easily getting imdbs by name."""
 
 __sets = {}
 
+import datasets.pascal_3Dplus
 import datasets.pascal_voc
 import numpy as np
 
@@ -27,6 +27,11 @@ for year in ['2007', '2012']:
         name = 'voc_{}_{}'.format(year, split)
         __sets[name] = (lambda split=split, year=year:
                 datasets.pascal_voc(split, year))
+
+# Add PASCAL_3D+
+for split in ['train', 'val', 'trainval', 'test']:
+    name = '3Dplus_' + split
+    __sets[name] = lambda: datasets.pascal_3Dplus()
 
 # Set up voc_<year>_<split>_top_<k> using selective search "quality" mode
 # but only returning the first k boxes
