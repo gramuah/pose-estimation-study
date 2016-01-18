@@ -17,14 +17,17 @@ import scipy.io as sio
 import utils.cython_bbox
 import cPickle
 import subprocess
+from statvfs import F_NAMEMAX
 
 class pascal_3Dplus(datasets.imdb):
-    def __init__(self, devkit_path=None):
+    def __init__(self, pascal3Dplus_path=None, pascal_path=None):
         datasets.imdb.__init__(self, '3Dplus')
         self._year = 2013
         self._image_set = '3Dplus' 
-        self._pascal_path = self._get_default_path() if devkit_path is None \
-                            else devkit_path
+        self._pascal3Dplus_path = self._get_default_path() if pascal3Dplus_path is None \
+                            else pascal3Dplus_path
+        self._pascal_path = self._get_pascal_default_path() if pascal_path is None \
+                            else pascal_path
         self._classes = ('__background__', # always index 0
                          'aeroplane', 'bicycle', 'boat',
                          'bottle', 'bus', 'car', 'chair',
@@ -42,8 +45,8 @@ class pascal_3Dplus(datasets.imdb):
                        'use_diff' : False,
                        'rpn_file' : None}
 
-        assert os.path.exists(self._pascal_path), \
-                'Pascal path does not exist: {}'.format(self._pascal_path)
+        assert os.path.exists(self._pascal3Dplus_path), \
+                'Pascal path does not exist: {}'.format(self._pascal3Dplus_path)
 
     def image_path_at(self, i):
         """
@@ -62,7 +65,7 @@ class pascal_3Dplus(datasets.imdb):
         else:
             im_ext = ".jpg"
         
-        image_path = os.path.join(self._pascal_path, 'Images',
+        image_path = os.path.join(self._pascal3Dplus_path, 'Images',
                                   index + im_ext)
         assert os.path.exists(image_path), \
                 'Path does not exist: {}'.format(image_path)
@@ -73,13 +76,23 @@ class pascal_3Dplus(datasets.imdb):
         Load the training and validation image names.
         """
         # Example path to image set file:
-        # self._pascal_path + /PACAL3D+/Image_sets/aeroplane_imagenet_train.txt
-        image_set_folder = os.path.join(self._pascal_path, 'Image_sets')
-        image_set_train_files = glob.glob(os.path.join(image_set_folder, '*_train.txt'))
-        image_set_val_files = glob.glob(os.path.join(image_set_folder, '*_val.txt'))
+        # self._pascal3Dplus_path + /PACAL3D+/Image_sets/aeroplane_imagenet_train.txt
+        imagenet_set_folder = os.path.join(self._pascal3Dplus_path, 'Image_sets')
+        imagenet_set_train_files = glob.glob(os.path.join(imagenet_set_folder, '*_train.txt'))
+        imagenet_set_val_files = glob.glob(os.path.join(imagenet_set_folder, '*_val.txt'))
+        
+        # self._pascal3Dplus_path + /PACAL3D+/Image_sets/aeroplane_imagenet_train.txt
+        pacal_set_folder = os.path.join(self._pascal_path, 'ImageSets', 'Main')
+
+        # self._pascal3Dplus_path + PASCAL/VOCdevkit/VOC2012/ImageSets/Main/bicycle_trainval.txt'
+        pascal_set_trainval_files = []
+        for i in range(1, len( self._classes )):
+            im_set = os.path.join(pacal_set_folder, '{}_trainval.txt'.format(self._classes[i])) 
+            pascal_set_trainval_files.append(im_set) 
         
         # Concatenate train and val
-        image_set_train_val_files = image_set_train_files + image_set_val_files 
+        image_set_train_val_files = imagenet_set_train_files + \
+                imagenet_set_val_files + pascal_set_trainval_files 
         
         image_names = []
         for f_name in image_set_train_val_files:
@@ -89,10 +102,21 @@ class pascal_3Dplus(datasets.imdb):
             # Get folder name            
             last_slash = f_name.rfind(os.path.sep) + 1
             last_ = f_name.rfind('_')
-            folder_name = f_name[last_slash:last_]
+            folder_name = f_name[last_slash:last_] if "imagenet" in f_name else f_name[last_slash:last_] + "_pascal"  
             
             with open(f_name) as f:
-                image_index = [ os.path.join( folder_name, x.strip() ) for x in f.readlines() ]
+                # Read for imagenet notation
+                if "imagenet" in f_name:
+                    image_index = [os.path.join( folder_name, x.strip() ) for x in f.readlines() ]
+                else:
+                # Read for pascal notation
+                    image_index = []
+                    for x in f.readlines():
+                        aux = x.strip() # remove end of line
+                        aux = aux.split(' ', 2)
+                        # Check class flag
+                        if aux[-1] == '1':
+                            image_index.append( os.path.join( folder_name, aux[0] ) )
             
             image_names += image_index
             
@@ -100,9 +124,15 @@ class pascal_3Dplus(datasets.imdb):
 
     def _get_default_path(self):
         """
-        Return the default path where PASCAL VOC is expected to be installed.
+        Return the default path where PASCAL 3D PLUS is expected to be installed.
         """
         return os.path.join(datasets.ROOT_DIR, 'data', 'PASCAL3D+')
+
+    def _get_pascal_default_path(self):
+        """
+        Return the default path where PASCAL VOC is expected to be installed.
+        """
+        return os.path.join(self._pascal3Dplus_path, 'PASCAL', 'VOCdevkit', 'VOC2012')
 
     def gt_roidb(self):
         """
@@ -191,7 +221,7 @@ class pascal_3Dplus(datasets.imdb):
         Load image and bounding boxes info from .mat file in the PASCAL3D
         format.
         """
-        filename = os.path.join(self._pascal_path, 'Annotations', index + '.mat')
+        filename = os.path.join(self._pascal3Dplus_path, 'Annotations', index + '.mat')
         raw_data = sio.loadmat(filename, struct_as_record=False, squeeze_me=True)
     
         objs = raw_data['record'].objects if hasattr(raw_data['record'].objects, '__iter__') else [raw_data['record'].objects] 
@@ -210,16 +240,23 @@ class pascal_3Dplus(datasets.imdb):
         boxes = np.zeros((num_objs, 4), dtype=np.uint16)
         gt_classes = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
+        mask = np.zeros((num_objs), dtype=np.bool )
 
         # Load object bounding boxes into a data frame.
         for ix, obj in enumerate(objs):
+            aux_cls = str( getattr(obj, 'class') )
+            # Check whether the object belong to our collection. If not, ignore
+            mask[ix] = self._class_to_ind.has_key(aux_cls)
+            if not mask[ix]:
+                continue
+            cls = self._class_to_ind[ aux_cls ]
+            
             bbox = obj.bbox
             # Make pixel indexes 0-based
             x1 = float( bbox[0] ) - 1
             y1 = float( bbox[1] ) - 1
             x2 = float( bbox[2] ) - 1
             y2 = float( bbox[3] ) - 1
-            cls = self._class_to_ind[str( getattr(obj, 'class') )]
 
             # Rectify boxes to fit withing the image. PASCAL3D+ contains bbox out of the image range!!
             aux_box = np.zeros_like(bbox)
@@ -230,6 +267,11 @@ class pascal_3Dplus(datasets.imdb):
             boxes[ix, :] = np.asarray( aux_box, np.uint16 )
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
+
+        # Filter out classes
+        overlaps = overlaps[mask]
+        boxes = boxes[mask]
+        gt_classes = gt_classes[mask]
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
 
@@ -278,7 +320,7 @@ class pascal_3Dplus(datasets.imdb):
         cmd += '{:s} -nodisplay -nodesktop '.format(datasets.MATLAB)
         cmd += '-r "dbstop if error; '
         cmd += 'voc_eval(\'{:s}\',\'{:s}\',\'{:s}\',\'{:s}\',{:d}); quit;"' \
-               .format(self._pascal_path, comp_id,
+               .format(self._pascal3Dplus_path, comp_id,
                        self._image_set, output_dir, int(rm_results))
         print('Running:\n{}'.format(cmd))
         status = subprocess.call(cmd, shell=True)
@@ -296,6 +338,6 @@ class pascal_3Dplus(datasets.imdb):
             self.config['cleanup'] = True
 
 if __name__ == '__main__':
-    d = datasets.pascal_3Dplus('trainval', '2007')
+    d = datasets.pascal_3Dplus()
     res = d.roidb
     from IPython import embed; embed()
