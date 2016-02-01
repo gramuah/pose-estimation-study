@@ -31,7 +31,7 @@ for year in ['2007', '2012']:
 # Add PASCAL_3D+
 for split in ['train', 'val', 'trainval', 'test']:
     name = '3Dplus_' + split
-    __sets[name] = lambda: datasets.pascal_3Dplus()
+    __sets[name] = lambda split=split: datasets.pascal_3Dplus(data_split = split)
 
 # Set up voc_<year>_<split>_top_<k> using selective search "quality" mode
 # but only returning the first k boxes

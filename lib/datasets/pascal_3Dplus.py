@@ -20,10 +20,10 @@ import subprocess
 from statvfs import F_NAMEMAX
 
 class pascal_3Dplus(datasets.imdb):
-    def __init__(self, pascal3Dplus_path=None, pascal_path=None):
+    def __init__(self, data_split = None, pascal3Dplus_path=None, pascal_path=None):
         datasets.imdb.__init__(self, '3Dplus')
         self._year = 2013
-        self._image_set = '3Dplus' 
+        self._image_set = data_split 
         self._pascal3Dplus_path = self._get_default_path() if pascal3Dplus_path is None \
                             else pascal3Dplus_path
         self._pascal_path = self._get_pascal_default_path() if pascal_path is None \
@@ -71,31 +71,49 @@ class pascal_3Dplus(datasets.imdb):
                 'Path does not exist: {}'.format(image_path)
         return image_path
 
-    def _load_image_set_index(self):
-        """
-        Load the training and validation image names.
-        """
+    def _get_pascal_2012_files(self, set_split):
+        # self._pascal3Dplus_path + /PACAL3D+/Image_sets/aeroplane_imagenet_train.txt
+        pacal_set_folder = os.path.join(self._pascal_path, 'ImageSets', 'Main')
+        
+        # self._pascal3Dplus_path + PASCAL/VOCdevkit/VOC2012/ImageSets/Main/bicycle_trainval.txt'
+        pascal_set_files = []
+        for i in range(1, len( self._classes )):
+            im_set = os.path.join(pacal_set_folder, '{}_{}.txt'.format(self._classes[i], set_split)) 
+            pascal_set_files.append(im_set)
+        
+        return pascal_set_files
+
+    def _get_imagenet_files(self, set_split):
         # Example path to image set file:
         # self._pascal3Dplus_path + /PACAL3D+/Image_sets/aeroplane_imagenet_train.txt
         imagenet_set_folder = os.path.join(self._pascal3Dplus_path, 'Image_sets')
-        imagenet_set_train_files = glob.glob(os.path.join(imagenet_set_folder, '*_train.txt'))
-        imagenet_set_val_files = glob.glob(os.path.join(imagenet_set_folder, '*_val.txt'))
-        
-        # self._pascal3Dplus_path + /PACAL3D+/Image_sets/aeroplane_imagenet_train.txt
-        pacal_set_folder = os.path.join(self._pascal_path, 'ImageSets', 'Main')
+        imagenet_set_files = glob.glob(os.path.join(imagenet_set_folder, '*_{}.txt'.format(set_split)))
 
-        # self._pascal3Dplus_path + PASCAL/VOCdevkit/VOC2012/ImageSets/Main/bicycle_trainval.txt'
-        pascal_set_trainval_files = []
-        for i in range(1, len( self._classes )):
-            im_set = os.path.join(pacal_set_folder, '{}_trainval.txt'.format(self._classes[i])) 
-            pascal_set_trainval_files.append(im_set) 
+        return imagenet_set_files
+
+    def _load_image_set_index(self):
+        """
+        The dataset image names.
+        """
+        # Get pascal files
+        pascal_set_files = self._get_pascal_2012_files(self._image_set)
         
-        # Concatenate train and val
-        image_set_train_val_files = imagenet_set_train_files + \
-                imagenet_set_val_files + pascal_set_trainval_files 
+        # Get imagenet files
+        imagenet_set = []
+        if self._image_set == 'trainval':
+            imagenet_train_set_files = self._get_imagenet_files('train')
+            imagenet_val_set_files = self._get_imagenet_files('val')
+            imagenet_set = imagenet_train_set_files + imagenet_val_set_files 
+        elif self._image_set == 'train':
+            imagenet_set = self._get_imagenet_files('train')
+        elif self._image_set == 'val':
+            imagenet_set = self._get_imagenet_files('val')
         
+        # Join all datasets files     
+        image_set = pascal_set_files + imagenet_set 
+    
         image_names = []
-        for f_name in image_set_train_val_files:
+        for f_name in image_set:
             assert os.path.exists(f_name), \
                     'Path does not exist: {}'.format(f_name)
 
