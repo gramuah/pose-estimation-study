@@ -167,6 +167,17 @@ class pascal_3Dplus(datasets.imdb):
 
         gt_roidb = [self._load_pascal_annotation(index)
                     for index in self.image_index]
+         
+#         # FIlter out bad boxes
+#         image_index_aux =[]
+#         gt_roidb_aux = []
+#         for ix in range(len(self._image_index)):
+#             if len(gt_roidb[ix]['boxes']) != 0:
+#                 gt_roidb_aux.append(gt_roidb[ix])
+#                 image_index_aux.append(self._image_index[ix])
+#         gt_roidb = gt_roidb_aux
+#         self._image_index = image_index_aux
+
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
         print 'wrote gt roidb to {}'.format(cache_file)
@@ -282,6 +293,17 @@ class pascal_3Dplus(datasets.imdb):
             aux_box[1] = max(y1, 0)
             aux_box[2] = min(x2, im_size.width - 1)
             aux_box[3] = min(y2, im_size.height - 1)
+            
+            if (aux_box < 0).all() \
+                or (aux_box[0] > im_size.width) or (aux_box[2] > im_size.width) \
+                or (aux_box[1] > im_size.height) or (aux_box[3] > im_size.height) \
+                or (aux_box[2] <= aux_box[0]) or (aux_box[3] <= aux_box[1]):
+#                     mask[ix] = False
+                aux_box[0] = 0
+                aux_box[1] = 0
+                aux_box[2] = im_size.width - 1
+                aux_box[3] = im_size.height - 1
+            
             boxes[ix, :] = np.asarray( aux_box, np.uint16 )
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
