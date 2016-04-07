@@ -106,9 +106,20 @@ class imdb(object):
             boxes[:, 0] = widths[i] - oldx2 - 1
             boxes[:, 2] = widths[i] - oldx1 - 1
             assert (boxes[:, 2] >= boxes[:, 0]).all()
+            
+            # Rectify the mirrow views
+            gt_rectified = np.zeros_like(self.roidb[i]['gt_classes'])
+            for ix, e in enumerate(self.roidb[i]['gt_classes']):
+                if e == 3:
+                    gt_rectified[ix] = 4
+                elif e == 4:
+                    gt_rectified[ix] = 3
+                else:
+                    gt_rectified[ix] = e
+            
             entry = {'boxes' : boxes,
                      'gt_overlaps' : self.roidb[i]['gt_overlaps'],
-                     'gt_classes' : self.roidb[i]['gt_classes'],
+                     'gt_classes' : gt_rectified,
                      'flipped' : True}
             self.roidb.append(entry)
         self._image_index = self._image_index * 2

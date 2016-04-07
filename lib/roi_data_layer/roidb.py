@@ -108,6 +108,8 @@ def add_bbox_regression_targets(roidb):
 
 def _compute_targets(rois, overlaps, labels):
     """Compute bounding-box regression targets for an image."""
+    if len(rois) == 0:
+        return np.zeros((rois.shape[0], 5), dtype=np.float32)
     # Indices of ground-truth ROIs
     gt_inds = np.where(overlaps == 1)[0]
     # Indices of examples for which we try to make predictions

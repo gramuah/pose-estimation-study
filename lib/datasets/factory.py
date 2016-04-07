@@ -10,6 +10,7 @@ __sets = {}
 
 import datasets.pascal_3Dplus
 import datasets.pascal_voc
+import datasets.pascal_voc_car_pose
 import numpy as np
 
 def _selective_search_IJCV_top_k(split, year, top_k):
@@ -27,6 +28,13 @@ for year in ['2007', '2012']:
         name = 'voc_{}_{}'.format(year, split)
         __sets[name] = (lambda split=split, year=year:
                 datasets.pascal_voc(split, year))
+
+# Set up voc_car_pose_<year>_<split> using selective search "fast" mode
+for year in ['2007', '2012']:
+    for split in ['train', 'val', 'trainval', 'test']:
+        name = 'voc_car_pose_{}_{}'.format(year, split)
+        __sets[name] = (lambda split=split, year=year:
+                datasets.pascal_voc_car_pose(split, year))
 
 # Add PASCAL_3D+
 for split in ['train', 'val', 'trainval', 'test']:

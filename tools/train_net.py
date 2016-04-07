@@ -107,6 +107,9 @@ if __name__ == '__main__':
     output_dir = get_output_dir(imdb, None)
     print 'Output will be saved to `{:s}`'.format(output_dir)
 
+    # Filter out images without rois
+    roidb = [ roi for roi in roidb if len(roi['gt_classes'])!=0 ]
+
     train_net(args.solver, roidb, output_dir,
               pretrained_model=args.pretrained_model,
               max_iters=args.max_iters)

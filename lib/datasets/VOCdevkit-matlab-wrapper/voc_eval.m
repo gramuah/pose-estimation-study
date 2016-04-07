@@ -5,7 +5,9 @@ VOCopts.testset = test_set;
 
 for i = 1:length(VOCopts.classes)
   cls = VOCopts.classes{i};
+  cls = 'car'
   res(i) = voc_eval_cls(cls, VOCopts, comp_id, output_dir, rm_res);
+  break
 end
 
 fprintf('\n~~~~~~~~~~~~~~~~~~~~\n');
