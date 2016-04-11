@@ -36,6 +36,13 @@ for year in ['2007', '2012']:
         __sets[name] = (lambda split=split, year=year:
                 datasets.pascal_voc_car_pose(split, year))
 
+# Set up voc_car_pose_<year>_<split> using selective search "fast" mode
+for year in ['2007', '2012']:
+    for split in ['train', 'val', 'trainval', 'test']:
+        name = 'voc_pose_{}_{}'.format(year, split)
+        __sets[name] = (lambda split=split, year=year:
+                datasets.pascal_voc_pose(split, year))
+
 # Add PASCAL_3D+
 for split in ['train', 'val', 'trainval', 'test']:
     name = '3Dplus_' + split

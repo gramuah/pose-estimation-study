@@ -5,9 +5,9 @@ VOCopts.testset = test_set;
 
 for i = 1:length(VOCopts.classes)
   cls = VOCopts.classes{i};
-  cls = 'car'
+  cls = 'car';
   res(i) = voc_eval_cls(cls, VOCopts, comp_id, output_dir, rm_res);
-  break
+  break;
 end
 
 fprintf('\n~~~~~~~~~~~~~~~~~~~~\n');
@@ -35,7 +35,7 @@ do_eval = (str2num(year) <= 2007) | ~strcmp(test_set, 'test');
 if do_eval
   % Bug in VOCevaldet requires that tic has been called first
   tic;
-  [recall, prec, ap] = VOCevaldet(VOCopts, comp_id, cls, true);
+  [recall, prec, ap, CM] = VOCevaldet(VOCopts, comp_id, cls, true);
   ap_auc = xVOCap(recall, prec);
 
   % force plot limits
@@ -53,7 +53,7 @@ res.ap = ap;
 res.ap_auc = ap_auc;
 
 save([output_dir '/' cls '_pr.mat'], ...
-     'res', 'recall', 'prec', 'ap', 'ap_auc');
+     'res', 'recall', 'prec', 'ap', 'ap_auc','CM');
 
 if rm_res
   delete(res_fn);
