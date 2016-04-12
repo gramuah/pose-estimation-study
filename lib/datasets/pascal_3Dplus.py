@@ -39,7 +39,7 @@ class pascal_3Dplus(datasets.imdb):
         self._roidb_handler = self.selective_search_roidb
 
         # PASCAL specific config options
-        self.config = {'cleanup'  : True,
+        self.config = {'cleanup'  : False,
                        'use_salt' : True,
                        'top_k'    : 2000,
                        'use_diff' : False,
@@ -100,15 +100,9 @@ class pascal_3Dplus(datasets.imdb):
         
         # Get imagenet files
         imagenet_set = []
-        if self._image_set == 'trainval':
-            imagenet_train_set_files = self._get_imagenet_files('train')
-            imagenet_val_set_files = self._get_imagenet_files('val')
-            imagenet_set = imagenet_train_set_files + imagenet_val_set_files 
-        elif self._image_set == 'train':
-            imagenet_set = self._get_imagenet_files('train')
-        elif self._image_set == 'val':
-            imagenet_set = self._get_imagenet_files('val')
-        
+        if self._image_set != 'val':
+            imagenet_set = self._get_imagenet_files(self._image_set)
+                
         # Join all datasets files     
         image_set = pascal_set_files + imagenet_set 
     
@@ -327,7 +321,7 @@ class pascal_3Dplus(datasets.imdb):
             comp_id += '-{}'.format(os.getpid())
 
         # Create results folder if not exist
-        results_path = os.path.join(self._get_default_path(), 'results')
+        results_path = os.path.join(self._get_default_path(), 'PASCAL/VOCdevkit/results/VOC2012/Main')
         if not os.path.exists( results_path ):
             os.makedirs( results_path )
 
@@ -340,6 +334,8 @@ class pascal_3Dplus(datasets.imdb):
             filename = path + 'det_' + self._image_set + '_' + cls + '.txt'
             with open(filename, 'wt') as f:
                 for im_ind, index in enumerate(self.image_index):
+                    # Keep only the hash
+                    index = index.split('/')[-1]
                     dets = all_boxes[cls_ind][im_ind]
                     if dets == []:
                         continue
@@ -355,7 +351,7 @@ class pascal_3Dplus(datasets.imdb):
         rm_results = self.config['cleanup']
 
         path = os.path.join(os.path.dirname(__file__),
-                            'VOCdevkit-matlab-wrapper')
+                            'PASCAL3D-matlab-wrapper')
         cmd = 'cd {} && '.format(path)
         cmd += '{:s} -nodisplay -nodesktop '.format(datasets.MATLAB)
         cmd += '-r "dbstop if error; '
@@ -363,6 +359,7 @@ class pascal_3Dplus(datasets.imdb):
                .format(self._pascal3Dplus_path, comp_id,
                        self._image_set, output_dir, int(rm_results))
         print('Running:\n{}'.format(cmd))
+        return 0
         status = subprocess.call(cmd, shell=True)
 
     def evaluate_detections(self, all_boxes, output_dir):

@@ -33,7 +33,7 @@ class pascal_voc_pose(datasets.imdb):
         self._roidb_handler = self.selective_search_roidb
 
         # PASCAL specific config options
-        self.config = {'cleanup'  : True,
+        self.config = {'cleanup'  : False,
                        'use_salt' : True,
                        'top_k'    : 2000,
                        'use_diff' : False,
@@ -287,8 +287,7 @@ class pascal_voc_pose(datasets.imdb):
         return comp_id
 
     def _do_matlab_eval(self, comp_id, output_dir='output'):
-#         rm_results = self.config['cleanup']
-        rm_results = 0
+        rm_results = self.config['cleanup']
         path = os.path.join(os.path.dirname(__file__),
                             'VOCdevkit-matlab-wrapper')
         cmd = 'cd {} && '.format(path)
