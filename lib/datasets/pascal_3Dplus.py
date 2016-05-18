@@ -100,8 +100,8 @@ class pascal_3Dplus(datasets.imdb):
         
         # Get imagenet files
         imagenet_set = []
-        if self._image_set != 'val':
-            imagenet_set = self._get_imagenet_files(self._image_set)
+#         if self._image_set != 'val':
+#             imagenet_set = self._get_imagenet_files(self._image_set)
                 
         # Join all datasets files     
         image_set = pascal_set_files + imagenet_set 
@@ -359,7 +359,6 @@ class pascal_3Dplus(datasets.imdb):
                .format(self._pascal3Dplus_path, comp_id,
                        self._image_set, output_dir, int(rm_results))
         print('Running:\n{}'.format(cmd))
-        return 0
         status = subprocess.call(cmd, shell=True)
 
     def evaluate_detections(self, all_boxes, output_dir):
