@@ -20,7 +20,7 @@ import subprocess
 from statvfs import F_NAMEMAX
 
 class pascal_3Dplus(datasets.imdb):
-    def __init__(self, data_split = None, pascal3Dplus_path=None, pascal_path=None):
+    def __init__(self, data_split=None, pascal3Dplus_path=None, pascal_path=None):
         datasets.imdb.__init__(self, '3Dplus')
         self._year = 2013
         self._image_set = data_split 
@@ -28,25 +28,41 @@ class pascal_3Dplus(datasets.imdb):
                             else pascal3Dplus_path
         self._pascal_path = self._get_pascal_default_path() if pascal_path is None \
                             else pascal_path
-        self._classes = ('__background__', # always index 0
+        self._classes = ('__background__',  # always index 0
                          'aeroplane', 'bicycle', 'boat',
                          'bottle', 'bus', 'car', 'chair',
                          'diningtable', 'motorbike', 'sofa',
                          'train', 'tvmonitor')
+
+        # PASCAL 3D+ specific config options
+        self.config = {'cleanup'  : False,
+                       'use_salt' : True,
+                       'top_k'    : 2000,
+                       'use_diff' : False,
+                       'rpn_file' : None,
+                       'n_bins'   : 4} # 4, 8, 16, 24. Adjust also in prototxt 
+        
+        self._classes = self._extend_classes(self._classes)
+
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_index = self._load_image_set_index()
         # Default to roidb handler
         self._roidb_handler = self.selective_search_roidb
 
-        # PASCAL specific config options
-        self.config = {'cleanup'  : False,
-                       'use_salt' : True,
-                       'top_k'    : 2000,
-                       'use_diff' : False,
-                       'rpn_file' : None}
-
         assert os.path.exists(self._pascal3Dplus_path), \
                 'Pascal path does not exist: {}'.format(self._pascal3Dplus_path)
+
+    def _extend_classes(self, classes_list):
+        p_class_list = [] 
+        for ix, c in enumerate(classes_list):
+            if ix == 0:
+                # Add background class
+                p_class_list.append(c)
+            else:
+                for bin in range(self.config['n_bins']):
+                    p_class_list.append( c + "_" + str(bin) )
+                
+        return p_class_list
 
     def image_path_at(self, i):
         """
@@ -59,7 +75,7 @@ class pascal_3Dplus(datasets.imdb):
         Construct an image path from the image's "index" identifier.
         """
         
-        #is Imagenet?
+        # is Imagenet?
         if 'imagenet' in index:
             im_ext = ".JPEG" 
         else:
@@ -77,8 +93,8 @@ class pascal_3Dplus(datasets.imdb):
         
         # self._pascal3Dplus_path + PASCAL/VOCdevkit/VOC2012/ImageSets/Main/bicycle_trainval.txt'
         pascal_set_files = []
-        for i in range(1, len( self._classes )):
-            im_set = os.path.join(pacal_set_folder, '{}_{}.txt'.format(self._classes[i], set_split)) 
+        for i in range(1, len(self._classes)):
+            im_set = os.path.join(pacal_set_folder, '{}_{}.txt'.format(self._classes[i].split('_')[0], set_split)) 
             pascal_set_files.append(im_set)
         
         return pascal_set_files
@@ -119,16 +135,16 @@ class pascal_3Dplus(datasets.imdb):
             with open(f_name) as f:
                 # Read for imagenet notation
                 if "imagenet" in f_name:
-                    image_index = [os.path.join( folder_name, x.strip() ) for x in f.readlines() ]
+                    image_index = [os.path.join(folder_name, x.strip()) for x in f.readlines() ]
                 else:
                 # Read for pascal notation
                     image_index = []
                     for x in f.readlines():
-                        aux = x.strip() # remove end of line
+                        aux = x.strip()  # remove end of line
                         aux = aux.split(' ', 2)
                         # Check class flag
                         if aux[-1] == '1':
-                            image_index.append( os.path.join( folder_name, aux[0] ) )
+                            image_index.append(os.path.join(folder_name, aux[0]))
             
             image_names += image_index
             
@@ -162,16 +178,6 @@ class pascal_3Dplus(datasets.imdb):
         gt_roidb = [self._load_pascal_annotation(index)
                     for index in self.image_index]
          
-#         # FIlter out bad boxes
-#         image_index_aux =[]
-#         gt_roidb_aux = []
-#         for ix in range(len(self._image_index)):
-#             if len(gt_roidb[ix]['boxes']) != 0:
-#                 gt_roidb_aux.append(gt_roidb[ix])
-#                 image_index_aux.append(self._image_index[ix])
-#         gt_roidb = gt_roidb_aux
-#         self._image_index = image_index_aux
-
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
         print 'wrote gt roidb to {}'.format(cache_file)
@@ -249,11 +255,12 @@ class pascal_3Dplus(datasets.imdb):
     
         objs = raw_data['record'].objects if hasattr(raw_data['record'].objects, '__iter__') else [raw_data['record'].objects] 
         im_size = raw_data['record'].size
+        angle_step = 360 / self.config['n_bins']
         
         if not self.config['use_diff']:
             # Exclude the samples labeled as difficult
             non_diff_objs = [obj for obj in objs
-                             if int( obj.difficult ) == 0]
+                             if int(obj.difficult) == 0]
             if len(non_diff_objs) != len(objs):
                 print 'Removed {} difficult objects' \
                     .format(len(objs) - len(non_diff_objs))
@@ -263,11 +270,16 @@ class pascal_3Dplus(datasets.imdb):
         boxes = np.zeros((num_objs, 4), dtype=np.uint16)
         gt_classes = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
-        mask = np.zeros((num_objs), dtype=np.bool )
+        mask = np.zeros((num_objs), dtype=np.bool)
 
         # Load object bounding boxes into a data frame.
         for ix, obj in enumerate(objs):
-            aux_cls = str( getattr(obj, 'class') )
+            aux_cls = str(getattr(obj, 'class'))
+            viewpoint_obj = getattr(obj, 'viewpoint')
+            azimuth = getattr(viewpoint_obj, 'azimuth')
+            pose_class = int(azimuth / angle_step)
+            aux_cls = aux_cls + "_" + str(pose_class)
+            
             # Check whether the object belong to our collection. If not, ignore
             mask[ix] = self._class_to_ind.has_key(aux_cls)
             if not mask[ix]:
@@ -276,10 +288,10 @@ class pascal_3Dplus(datasets.imdb):
             
             bbox = obj.bbox
             # Make pixel indexes 0-based
-            x1 = float( bbox[0] ) - 1
-            y1 = float( bbox[1] ) - 1
-            x2 = float( bbox[2] ) - 1
-            y2 = float( bbox[3] ) - 1
+            x1 = float(bbox[0]) - 1
+            y1 = float(bbox[1]) - 1
+            x2 = float(bbox[2]) - 1
+            y2 = float(bbox[3]) - 1
 
             # Rectify boxes to fit withing the image. PASCAL3D+ contains bbox out of the image range!!
             aux_box = np.zeros_like(bbox)
@@ -298,7 +310,7 @@ class pascal_3Dplus(datasets.imdb):
                 aux_box[2] = im_size.width - 1
                 aux_box[3] = im_size.height - 1
             
-            boxes[ix, :] = np.asarray( aux_box, np.uint16 )
+            boxes[ix, :] = np.asarray(aux_box, np.uint16)
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
 
@@ -322,8 +334,8 @@ class pascal_3Dplus(datasets.imdb):
 
         # Create results folder if not exist
         results_path = os.path.join(self._get_default_path(), 'PASCAL/VOCdevkit/results/VOC2012/Main')
-        if not os.path.exists( results_path ):
-            os.makedirs( results_path )
+        if not os.path.exists(results_path):
+            os.makedirs(results_path)
 
         # PASCAL3D+/results/comp4-44503_det_test_aeroplane.txt
         path = os.path.join(results_path, comp_id + '_')
@@ -371,7 +383,7 @@ class pascal_3Dplus(datasets.imdb):
             self.config['cleanup'] = False
         else:
             self.config['use_salt'] = True
-            self.config['cleanup'] = True
+            self.config['cleanup'] = False
 
 if __name__ == '__main__':
     d = datasets.pascal_3Dplus()
