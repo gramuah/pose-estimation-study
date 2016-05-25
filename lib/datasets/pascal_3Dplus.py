@@ -28,7 +28,7 @@ class pascal_3Dplus(datasets.imdb):
                             else pascal3Dplus_path
         self._pascal_path = self._get_pascal_default_path() if pascal_path is None \
                             else pascal_path
-        self._classes = ('__background__',  # always index 0
+        self._sup_classes = ('__background__',  # always index 0
                          'aeroplane', 'bicycle', 'boat',
                          'bottle', 'bus', 'car', 'chair',
                          'diningtable', 'motorbike', 'sofa',
@@ -42,7 +42,7 @@ class pascal_3Dplus(datasets.imdb):
                        'rpn_file' : None,
                        'n_bins'   : 4} # 4, 8, 16, 24. Adjust also in prototxt 
         
-        self._classes = self._extend_classes(self._classes)
+        self._classes = self._extend_classes(self._sup_classes)
 
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_index = self._load_image_set_index()
@@ -81,73 +81,110 @@ class pascal_3Dplus(datasets.imdb):
         else:
             im_ext = ".jpg"
         
-        image_path = os.path.join(self._pascal3Dplus_path, 'Images',
-                                  index + im_ext)
+        if self._image_set == 'test':
+            image_path = os.path.join(self._pascal3Dplus_path, 'PASCAL', 'VOCdevkit', 'VOC2012' , 'JPEGImages', index + im_ext)
+        else:
+            image_path = os.path.join(self._pascal3Dplus_path, 'Images', index + im_ext)
         assert os.path.exists(image_path), \
                 'Path does not exist: {}'.format(image_path)
         return image_path
 
-    def _get_pascal_2012_files(self, set_split):
+    def _get_pascal_2012_train_names(self):
         # self._pascal3Dplus_path + /PACAL3D+/Image_sets/aeroplane_imagenet_train.txt
         pacal_set_folder = os.path.join(self._pascal_path, 'ImageSets', 'Main')
         
         # self._pascal3Dplus_path + PASCAL/VOCdevkit/VOC2012/ImageSets/Main/bicycle_trainval.txt'
         pascal_set_files = []
-        for i in range(1, len(self._classes)):
-            im_set = os.path.join(pacal_set_folder, '{}_{}.txt'.format(self._classes[i].split('_')[0], set_split)) 
+        for i in range(1, len(self._sup_classes)):
+            im_set = os.path.join(pacal_set_folder, '{}_{}.txt'.format(self._sup_classes[i],'train')) 
             pascal_set_files.append(im_set)
-        
-        return pascal_set_files
-
-    def _get_imagenet_files(self, set_split):
-        # Example path to image set file:
-        # self._pascal3Dplus_path + /PACAL3D+/Image_sets/aeroplane_imagenet_train.txt
-        imagenet_set_folder = os.path.join(self._pascal3Dplus_path, 'Image_sets')
-        imagenet_set_files = glob.glob(os.path.join(imagenet_set_folder, '*_{}.txt'.format(set_split)))
-
-        return imagenet_set_files
-
-    def _load_image_set_index(self):
-        """
-        The dataset image names.
-        """
-        # Get pascal files
-        pascal_set_files = self._get_pascal_2012_files(self._image_set)
-        
-        # Get imagenet files
-        imagenet_set = []
-#         if self._image_set != 'val':
-#             imagenet_set = self._get_imagenet_files(self._image_set)
-                
-        # Join all datasets files     
-        image_set = pascal_set_files + imagenet_set 
-    
+            
+        # Extract tranining image names
         image_names = []
-        for f_name in image_set:
+        for f_name in pascal_set_files:
             assert os.path.exists(f_name), \
                     'Path does not exist: {}'.format(f_name)
 
             # Get folder name            
             last_slash = f_name.rfind(os.path.sep) + 1
             last_ = f_name.rfind('_')
-            folder_name = f_name[last_slash:last_] if "imagenet" in f_name else f_name[last_slash:last_] + "_pascal"  
+            folder_name = f_name[last_slash:last_] + "_pascal"  
+            
+            with open(f_name) as f:
+                # Read for pascal notation
+                image_index = []
+                for x in f.readlines():
+                    aux = x.strip()  # remove end of line
+                    aux = aux.split(' ', 2)
+                    # Check class flag
+                    if aux[-1] == '1':
+                        image_index.append(os.path.join(folder_name, aux[0]))
+            
+            image_names += image_index
+        
+        return image_names
+
+    def _get_pascal_2012_val_names(self):
+        # self._pascal3Dplus_path + /PACAL3D+/PASCAL/VOCdevkit/VOC2012/ImageSets/Main/val.txt
+        pascal_train_files = os.path.join(self._pascal_path, 'ImageSets', 'Main','val.txt')
+        
+        assert os.path.exists(pascal_train_files), \
+            'Path does not exist: {}'.format(pascal_train_files)    
+        
+        # Extract tranining image names
+        with open(pascal_train_files) as f:
+            # Read for pascal notation
+            image_names = [ x.strip() for x in f.readlines() ]
+        
+        return image_names
+
+    def _get_imagenet_names(self, set_split):
+        
+        # Example path to image set file:
+        # self._pascal3Dplus_path + /PACAL3D+/Image_sets/aeroplane_imagenet_train.txt
+        imagenet_set_folder = os.path.join(self._pascal3Dplus_path, 'Image_sets')
+        imagenet_set_files = glob.glob(os.path.join(imagenet_set_folder, '*_{}.txt'.format(set_split)))
+
+        # Extract image names
+        image_names = []
+        for f_name in imagenet_set_files:
+            assert os.path.exists(f_name), \
+                    'Path does not exist: {}'.format(f_name)
+
+            # Get folder name            
+            last_slash = f_name.rfind(os.path.sep) + 1
+            last_ = f_name.rfind('_')
+            folder_name = f_name[last_slash:last_]
             
             with open(f_name) as f:
                 # Read for imagenet notation
-                if "imagenet" in f_name:
-                    image_index = [os.path.join(folder_name, x.strip()) for x in f.readlines() ]
-                else:
-                # Read for pascal notation
-                    image_index = []
-                    for x in f.readlines():
-                        aux = x.strip()  # remove end of line
-                        aux = aux.split(' ', 2)
-                        # Check class flag
-                        if aux[-1] == '1':
-                            image_index.append(os.path.join(folder_name, aux[0]))
+                image_index = [os.path.join( folder_name, x.strip() ) for x in f.readlines() ]
             
             image_names += image_index
-            
+        
+        return image_names
+
+    def _load_image_set_index(self):
+        """
+        The dataset image names.
+        """
+        image_names = []
+        if self._image_set == 'train':
+            pascal_12c_names = self._get_pascal_2012_train_names()
+            imagenet_12c_names = self._get_imagenet_names(self._image_set)
+            image_names = pascal_12c_names + imagenet_12c_names
+        elif self._image_set == 'trainval':
+            pascal_train_12c_names = self._get_pascal_2012_train_names()
+            imagenet_train_12c_names = self._get_imagenet_names('train')
+            imagenet_val_12c_names = self._get_imagenet_names('val')
+            image_names = pascal_train_12c_names + imagenet_train_12c_names + imagenet_val_12c_names 
+        elif self._image_set == 'val':
+            image_names = self._get_imagenet_names(self._image_set)
+        elif self._image_set == 'test':
+            image_names = self._get_pascal_2012_val_names()
+        else:
+            assert False, "Unrecognized dataset: {}".format(self._image_set)
+                    
         return image_names
 
     def _get_default_path(self):
@@ -276,6 +313,10 @@ class pascal_3Dplus(datasets.imdb):
         for ix, obj in enumerate(objs):
             aux_cls = str(getattr(obj, 'class'))
             viewpoint_obj = getattr(obj, 'viewpoint')
+            if not hasattr(viewpoint_obj,'azimuth'):
+                # Some classes does not have pose on PASCAL 2012. We have to skip them.
+                mask[ix] = False
+                continue
             azimuth = getattr(viewpoint_obj, 'azimuth')
             pose_class = int(azimuth / angle_step)
             aux_cls = aux_cls + "_" + str(pose_class)
@@ -333,30 +374,46 @@ class pascal_3Dplus(datasets.imdb):
             comp_id += '-{}'.format(os.getpid())
 
         # Create results folder if not exist
-        results_path = os.path.join(self._get_default_path(), 'PASCAL/VOCdevkit/results/VOC2012/Main')
+        results_path = os.path.join(self._get_default_path(), 'results/PASCAL_3D+/Main')
         if not os.path.exists(results_path):
             os.makedirs(results_path)
 
-        # PASCAL3D+/results/comp4-44503_det_test_aeroplane.txt
+        # PASCAL/VOCdevkit/results/VOC2012/Main/aeroplane_4_val.mat
         path = os.path.join(results_path, comp_id + '_')
-        for cls_ind, cls in enumerate(self.classes):
+        for cls_ind, cls in enumerate(self._sup_classes):
             if cls == '__background__':
                 continue
             print 'Writing {} VOC results file'.format(cls)
-            filename = path + 'det_' + self._image_set + '_' + cls + '.txt'
-            with open(filename, 'wt') as f:
+            filename = path + cls + "_" + str(self.config["n_bins"]) + "_" + self._image_set + '.mat'
+
+            pascal_det_mat = []
+            
+            for pose_cls in range(self.config['n_bins']): # Iterate for all the subclasses
                 for im_ind, index in enumerate(self.image_index):
                     # Keep only the hash
                     index = index.split('/')[-1]
-                    dets = all_boxes[cls_ind][im_ind]
+                    pose_cls_idx = (cls_ind-1)*self.config['n_bins'] + pose_cls + 1 # Compute class + pose idx
+                    dets = all_boxes[ pose_cls_idx ][im_ind]
                     if dets == []:
+                        pascal_det_mat.append(dets)
                         continue
-                    # the VOCdevkit expects 1-based indices
+                    
+                    # Collect all the detections of that image
+                    mat_dets = []
                     for k in xrange(dets.shape[0]):
-                        f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f}\n'.
-                                format(index, dets[k, -1],
-                                       dets[k, 0] + 1, dets[k, 1] + 1,
-                                       dets[k, 2] + 1, dets[k, 3] + 1))
+                        # the VOCdevkit expects 1-based indices
+                        bb = dets[k, 0:4] + 1 # Bounding box in 1 index
+                        score = dets[k, -1]
+                        lab = pose_cls_idx + 1 # Make 1-based
+                        d = np.hstack( (bb, lab, score) )
+                        mat_dets.append(d)
+                        
+                    # Append all the detections of an image
+                    pascal_det_mat.append(mat_dets)    
+                
+                # Save mat
+                sio.savemat(filename, {'dets' : pascal_det_mat} )     
+
         return comp_id
 
     def _do_matlab_eval(self, comp_id, output_dir='output'):

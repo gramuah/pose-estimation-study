@@ -107,6 +107,7 @@ class imdb(object):
             boxes[:, 2] = widths[i] - oldx1 - 1
             assert (boxes[:, 2] >= boxes[:, 0]).all()
             
+            # TODO: Extend to all poses
             # Rectify the mirrow views
             gt_rectified = np.zeros_like(self.roidb[i]['gt_classes'])
             for ix, e in enumerate(self.roidb[i]['gt_classes']):

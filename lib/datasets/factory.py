@@ -44,7 +44,7 @@ for year in ['2007', '2012']:
                 datasets.pascal_voc_pose(split, year))
 
 # Add PASCAL_3D+
-for split in ['train', 'val', 'test']:
+for split in ['train', 'val', 'trainval', 'test']:
     name = '3Dplus_' + split
     __sets[name] = lambda split=split: datasets.pascal_3Dplus(data_split = split)
 
