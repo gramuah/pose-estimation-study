@@ -367,6 +367,9 @@ class pascal_3Dplus(datasets.imdb):
                 'gt_overlaps' : overlaps,
                 'flipped' : False}
 
+    def _get_result_folder(self):
+        return os.path.join(self._get_default_path(), 'results/PASCAL_3D+/Main')
+
     def _write_voc_results_file(self, all_boxes):
         use_salt = self.config['use_salt']
         comp_id = 'comp4'
@@ -374,7 +377,7 @@ class pascal_3Dplus(datasets.imdb):
             comp_id += '-{}'.format(os.getpid())
 
         # Create results folder if not exist
-        results_path = os.path.join(self._get_default_path(), 'results/PASCAL_3D+/Main')
+        results_path = self._get_result_folder()
         if not os.path.exists(results_path):
             os.makedirs(results_path)
 
@@ -424,9 +427,10 @@ class pascal_3Dplus(datasets.imdb):
         cmd = 'cd {} && '.format(path)
         cmd += '{:s} -nodisplay -nodesktop '.format(datasets.MATLAB)
         cmd += '-r "dbstop if error; '
-        cmd += 'voc_eval(\'{:s}\',\'{:s}\',\'{:s}\',\'{:s}\',{:d}); quit;"' \
+        cmd += 'voc_eval(\'{:s}\',\'{:s}\',\'{:s}\',\'{:s}\',{:d},\'{:s}\',{:d}); quit;"' \
                .format(self._pascal3Dplus_path, comp_id,
-                       self._image_set, output_dir, int(rm_results))
+                       self._image_set, self._get_result_folder(), 
+                       self.config['n_bins'], output_dir, int(rm_results))
         print('Running:\n{}'.format(cmd))
         status = subprocess.call(cmd, shell=True)
 
