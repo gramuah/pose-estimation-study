@@ -9,9 +9,14 @@ end
 
 fprintf('\n~~~~~~~~~~~~~~~~~~~~\n');
 fprintf('Results:\n');
+fprintf('\nDetection\n');
 aps = [res(:).ap]';
 fprintf('%.1f\n', aps * 100);
 fprintf('%.1f\n', mean(aps) * 100);
+fprintf('\nAverage Viewpoint Precision\n');
+avp = [res.ap_auc]';
+fprintf('%.1f\n', avp * 100);
+fprintf('%.1f\n', mean(avp) * 100);
 fprintf('~~~~~~~~~~~~~~~~~~~~\n');
 
 function res = voc_eval_cls(data_path, data_set, cls, vnum_train, comp_id, output_dir, rm_res)
