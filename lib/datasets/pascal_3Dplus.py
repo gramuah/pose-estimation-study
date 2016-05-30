@@ -40,7 +40,7 @@ class pascal_3Dplus(datasets.imdb):
                        'top_k'    : 2000,
                        'use_diff' : False,
                        'rpn_file' : None,
-                       'n_bins'   : 4} # 4, 8, 16, 24. Adjust also in prototxt 
+                       'n_bins'   : 8} # 4, 8, 16, 24. Adjust also in prototxt 
         
         self._classes = self._extend_classes(self._sup_classes)
 
