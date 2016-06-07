@@ -1,4 +1,4 @@
-name: "VGG_ILSVRC_16_layers_3Dplus"
+name: "VGG_ILSVRC_16_layers"
 layer {
   name: 'input-data'
   type: 'Python'
@@ -388,10 +388,10 @@ layer {
 }
 
 layer {
-  name: "rpn_cls_score_3D_4"
+  name: "rpn_cls_score"
   type: "Convolution"
   bottom: "rpn/output"
-  top: "rpn_cls_score_3D_4"
+  top: "rpn_cls_score"
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
   convolution_param {
@@ -403,10 +403,10 @@ layer {
 }
 
 layer {
-  name: "rpn_bbox_pred_3D_4"
+  name: "rpn_bbox_pred"
   type: "Convolution"
   bottom: "rpn/output"
-  top: "rpn_bbox_pred_3D_4"
+  top: "rpn_bbox_pred"
   param { lr_mult: 1.0 }
   param { lr_mult: 2.0 }
   convolution_param {
@@ -418,9 +418,9 @@ layer {
 }
 
 layer {
-   bottom: "rpn_cls_score_3D_4"
-   top: "rpn_cls_score_3D_4_reshape"
-   name: "rpn_cls_score_3D_4_reshape"
+   bottom: "rpn_cls_score"
+   top: "rpn_cls_score_reshape"
+   name: "rpn_cls_score_reshape"
    type: "Reshape"
    reshape_param { shape { dim: 0 dim: 2 dim: -1 dim: 0 } }
 }
@@ -428,7 +428,7 @@ layer {
 layer {
   name: 'rpn-data'
   type: 'Python'
-  bottom: 'rpn_cls_score_3D_4'
+  bottom: 'rpn_cls_score'
   bottom: 'gt_boxes'
   bottom: 'im_info'
   bottom: 'data'
@@ -446,7 +446,7 @@ layer {
 layer {
   name: "rpn_loss_cls"
   type: "SoftmaxWithLoss"
-  bottom: "rpn_cls_score_3D_4_reshape"
+  bottom: "rpn_cls_score_reshape"
   bottom: "rpn_labels"
   propagate_down: 1
   propagate_down: 0
@@ -461,7 +461,7 @@ layer {
 layer {
   name: "rpn_loss_bbox"
   type: "SmoothL1Loss"
-  bottom: "rpn_bbox_pred_3D_4"
+  bottom: "rpn_bbox_pred"
   bottom: "rpn_bbox_targets"
   bottom: 'rpn_bbox_inside_weights'
   bottom: 'rpn_bbox_outside_weights'
@@ -475,7 +475,7 @@ layer {
 layer {
   name: "rpn_cls_prob"
   type: "Softmax"
-  bottom: "rpn_cls_score_3D_4_reshape"
+  bottom: "rpn_cls_score_reshape"
   top: "rpn_cls_prob"
 }
 
@@ -491,7 +491,7 @@ layer {
   name: 'proposal'
   type: 'Python'
   bottom: 'rpn_cls_prob_reshape'
-  bottom: 'rpn_bbox_pred_3D_4'
+  bottom: 'rpn_bbox_pred'
   bottom: 'im_info'
   top: 'rpn_rois'
 #  top: 'rpn_scores'
