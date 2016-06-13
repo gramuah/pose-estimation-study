@@ -32,10 +32,20 @@ class RoIDataLayer(caffe.Layer):
             inds = np.hstack((
                 np.random.permutation(horz_inds),
                 np.random.permutation(vert_inds)))
-            inds = np.reshape(inds, (-1, 2))
-            row_perm = np.random.permutation(np.arange(inds.shape[0]))
-            inds = np.reshape(inds[row_perm, :], (-1,))
-            self._perm = inds
+            # Bug, if the roiddb length it's not even, drop a sample
+            if (len(self._roidb) % 2) != 0:
+                last_ix = inds[-1]  # Extract the last element and make it have an even length
+                inds = np.reshape(inds[:-1], (-1, 2))
+                row_perm = np.random.permutation(np.arange(inds.shape[0]))
+                inds = np.reshape(inds[row_perm, :], (-1,))
+                rnd_pos = np.random.randint(len(inds))
+                inds = np.insert(inds, rnd_pos, last_ix) # Return the extracted element to a random position
+                self._perm = inds
+            else:
+                inds = np.reshape(inds, (-1, 2))
+                row_perm = np.random.permutation(np.arange(inds.shape[0]))
+                inds = np.reshape(inds[row_perm, :], (-1,))
+                self._perm = inds
         else:
             self._perm = np.random.permutation(np.arange(len(self._roidb)))
         self._cur = 0
