@@ -7,6 +7,7 @@ Created on Jan 5, 2016
 '''
 
 import numpy as np
+import scipy.signal as sig
 import matplotlib.pyplot as plt
 import sys
 
@@ -26,7 +27,11 @@ if __name__ == '__main__':
                 loss_v.append( float(s[-1]) )
                 it_v.append( int( s[-4][:-1]) ) 
 
-    plt.plot(it_v, loss_v)
+    # Median filter
+    med_loss = sig.medfilt(loss_v, 101)
+
+    plt.plot(it_v, loss_v, 'b')
+    plt.plot(it_v, med_loss, 'r', lw=2.0)
     plt.xlabel("Iterations")
     plt.ylabel("Loss")
     plt.show()

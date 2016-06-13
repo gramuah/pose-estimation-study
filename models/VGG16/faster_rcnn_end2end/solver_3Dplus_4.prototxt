@@ -12,5 +12,5 @@ weight_decay: 0.0005
 # function
 snapshot: 0
 # We still use the snapshot prefix, though
-snapshot_prefix: "vgg16_faster_rcnn_3Dplus_4"
+snapshot_prefix: "vgg16_faster_rcnn_3Dplus_4_2012_TUNE"
 iter_size: 2
