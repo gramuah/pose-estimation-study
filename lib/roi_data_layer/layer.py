@@ -40,12 +40,11 @@ class RoIDataLayer(caffe.Layer):
                 inds = np.reshape(inds[row_perm, :], (-1,))
                 rnd_pos = np.random.randint(len(inds))
                 inds = np.insert(inds, rnd_pos, last_ix) # Return the extracted element to a random position
-                self._perm = inds
             else:
                 inds = np.reshape(inds, (-1, 2))
                 row_perm = np.random.permutation(np.arange(inds.shape[0]))
                 inds = np.reshape(inds[row_perm, :], (-1,))
-                self._perm = inds
+            self._perm = inds
         else:
             self._perm = np.random.permutation(np.arange(len(self._roidb)))
         self._cur = 0
