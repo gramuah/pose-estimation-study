@@ -28,7 +28,7 @@ class pascal_3Dplus(datasets.imdb):
                             else pascal3Dplus_path
         self._pascal_path = self._get_pascal_default_path() if pascal_path is None \
                             else pascal_path
-        self._sup_classes = ('__background__',  # always index 0
+        self._classes = ('__background__',  # always index 0
                          'aeroplane', 'bicycle', 'boat',
                          'bottle', 'bus', 'car', 'chair',
                          'diningtable', 'motorbike', 'sofa',
@@ -39,10 +39,7 @@ class pascal_3Dplus(datasets.imdb):
                        'use_salt' : True,
                        'top_k'    : 2000,
                        'use_diff' : False,
-                       'rpn_file' : None,
-                       'n_bins'   : 4} # 4, 8, 16, 24. Adjust also in prototxt 
-        
-        self._classes = self._extend_classes(self._sup_classes)
+                       'rpn_file' : None} 
 
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_index = self._load_image_set_index()
@@ -51,18 +48,6 @@ class pascal_3Dplus(datasets.imdb):
 
         assert os.path.exists(self._pascal3Dplus_path), \
                 'Pascal path does not exist: {}'.format(self._pascal3Dplus_path)
-
-    def _extend_classes(self, classes_list):
-        p_class_list = [] 
-        for ix, c in enumerate(classes_list):
-            if ix == 0:
-                # Add background class
-                p_class_list.append(c)
-            else:
-                for bin in range(self.config['n_bins']):
-                    p_class_list.append( c + "_" + str(bin) )
-                
-        return p_class_list
 
     def image_path_at(self, i):
         """
@@ -95,8 +80,8 @@ class pascal_3Dplus(datasets.imdb):
         
         # self._pascal3Dplus_path + PASCAL/VOCdevkit/VOC2012/ImageSets/Main/bicycle_trainval.txt'
         pascal_set_files = []
-        for i in range(1, len(self._sup_classes)):
-            im_set = os.path.join(pacal_set_folder, '{}_{}.txt'.format(self._sup_classes[i],'train')) 
+        for i in range(1, len(self._classes)):
+            im_set = os.path.join(pacal_set_folder, '{}_{}.txt'.format(self._classes[i],'train')) 
             pascal_set_files.append(im_set)
             
         # Extract tranining image names
@@ -139,7 +124,6 @@ class pascal_3Dplus(datasets.imdb):
         return image_names
 
     def _get_imagenet_names(self, set_split):
-        
         # Example path to image set file:
         # self._pascal3Dplus_path + /PACAL3D+/Image_sets/aeroplane_imagenet_train.txt
         imagenet_set_folder = os.path.join(self._pascal3Dplus_path, 'Image_sets')
@@ -292,8 +276,7 @@ class pascal_3Dplus(datasets.imdb):
     
         objs = raw_data['record'].objects if hasattr(raw_data['record'].objects, '__iter__') else [raw_data['record'].objects] 
         im_size = raw_data['record'].size
-        angle_step = 360 / self.config['n_bins']
-        
+                
         if not self.config['use_diff']:
             # Exclude the samples labeled as difficult
             non_diff_objs = [obj for obj in objs
@@ -307,6 +290,7 @@ class pascal_3Dplus(datasets.imdb):
         boxes = np.zeros((num_objs, 4), dtype=np.uint16)
         gt_classes = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
+        azimuths = np.zeros((num_objs, self.num_classes), dtype=np.float32)
         mask = np.zeros((num_objs), dtype=np.bool)
 
         # Load object bounding boxes into a data frame.
@@ -318,8 +302,6 @@ class pascal_3Dplus(datasets.imdb):
                 mask[ix] = False
                 continue
             azimuth = getattr(viewpoint_obj, 'azimuth')
-            pose_class = int(azimuth / angle_step)
-            aux_cls = aux_cls + "_" + str(pose_class)
             
             # Check whether the object belong to our collection. If not, ignore
             mask[ix] = self._class_to_ind.has_key(aux_cls)
@@ -354,18 +336,21 @@ class pascal_3Dplus(datasets.imdb):
             boxes[ix, :] = np.asarray(aux_box, np.uint16)
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
+            azimuths[ix, cls] = azimuth
 
         # Filter out classes
         overlaps = overlaps[mask]
         boxes = boxes[mask]
         gt_classes = gt_classes[mask]
+        azimuths = azimuths[mask]
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
 
-        return {'boxes' : boxes,
-                'gt_classes': gt_classes,
-                'gt_overlaps' : overlaps,
-                'flipped' : False}
+        return {'boxes': boxes,
+                'gt_classes':gt_classes,
+                'gt_overlaps': overlaps,
+                'gt_azimuths': azimuths,
+                'flipped': False}
 
     def _get_result_folder(self):
         return os.path.join(self._get_default_path(), 'results/PASCAL_3D+/Main')
@@ -383,7 +368,7 @@ class pascal_3Dplus(datasets.imdb):
 
         # PASCAL/VOCdevkit/results/VOC2012/Main/aeroplane_4_val.mat
         path = os.path.join(results_path, comp_id + '_')
-        for cls_ind, cls in enumerate(self._sup_classes):
+        for cls_ind, cls in enumerate(self._classes):
             if cls == '__background__':
                 continue
             print 'Writing {} VOC results file'.format(cls)

@@ -114,6 +114,10 @@ class RoIDataLayer(caffe.Layer):
             top[idx].reshape(1, 4)
             self._name_to_top_map['gt_boxes'] = idx
             idx += 1
+            
+            top[idx].reshape(1, self._num_classes)
+            self._name_to_top_map['gt_azimuths'] = idx
+            idx += 1
         else: # not using RPN
             # rois blob: holds R regions of interest, each is a 5-tuple
             # (n, x1, y1, x2, y2) specifying an image batch index n and a
