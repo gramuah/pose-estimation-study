@@ -28,7 +28,7 @@ class pascal_3Dplus(datasets.imdb):
                             else pascal3Dplus_path
         self._pascal_path = self._get_pascal_default_path() if pascal_path is None \
                             else pascal_path
-        self._classes = ('__background__',  # always index 0
+        self._classes = ('__background__',      # always index 0
                          'aeroplane', 'bicycle', 'boat',
                          'bottle', 'bus', 'car', 'chair',
                          'diningtable', 'motorbike', 'sofa',
@@ -39,6 +39,7 @@ class pascal_3Dplus(datasets.imdb):
                        'use_salt' : True,
                        'top_k'    : 2000,
                        'use_diff' : False,
+                       'n_bins'   : 4,          # 4, 8, 16, 24
                        'rpn_file' : None} 
 
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
@@ -376,31 +377,31 @@ class pascal_3Dplus(datasets.imdb):
 
             pascal_det_mat = []
             
-            for pose_cls in range(self.config['n_bins']): # Iterate for all the subclasses
-                for im_ind, index in enumerate(self.image_index):
-                    # Keep only the hash
-                    index = index.split('/')[-1]
-                    pose_cls_idx = (cls_ind-1)*self.config['n_bins'] + pose_cls + 1 # Compute class + pose idx
-                    dets = all_boxes[ pose_cls_idx ][im_ind]
-                    if dets == []:
-                        pascal_det_mat.append(dets)
-                        continue
-                    
-                    # Collect all the detections of that image
-                    mat_dets = []
-                    for k in xrange(dets.shape[0]):
-                        # the VOCdevkit expects 1-based indices
-                        bb = dets[k, 0:4] + 1 # Bounding box in 1 index
-                        score = dets[k, -1]
-                        lab = pose_cls_idx + 1 # Make 1-based
-                        d = np.hstack( (bb, lab, score) )
-                        mat_dets.append(d)
-                        
-                    # Append all the detections of an image
-                    pascal_det_mat.append(mat_dets)    
+            for im_ind, index in enumerate(self.image_index):
+                # Keep only the hash
+                index = index.split('/')[-1]
+                dets = all_boxes[ cls_ind ][im_ind]
+
+                if dets == []:
+                    pascal_det_mat.append(dets)
+                    continue
                 
-                # Save mat
-                sio.savemat(filename, {'dets' : pascal_det_mat} )     
+                # Collect all the detections of that image
+                mat_dets = []
+                for k in xrange(dets.shape[0]):
+                    # the VOCdevkit expects 1-based indices
+                    bb = dets[k, 0:4] + 1 # Bounding box in 1 index
+                    score = dets[k, -2]
+                    pose = int(dets[k, -1]/360.0/self.config['n_bins']) + 1 # Compute class + pose idx
+
+                    d = np.hstack( (bb, pose, score) )
+                    mat_dets.append(d)
+                    
+                # Append all the detections of an image
+                pascal_det_mat.append(mat_dets)    
+            
+            # Save mat
+            sio.savemat(filename, {'dets' : pascal_det_mat} )     
 
         return comp_id
 

@@ -600,6 +600,23 @@ layer {
     }
   }
 }
+
+layer {
+  name: "pose_pred"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_pred"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 2
+  }
+  inner_product_param {
+    num_output: 26
+  }
+}
+
 layer {
   name: "cls_prob"
   type: "Softmax"

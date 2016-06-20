@@ -118,6 +118,7 @@ def im_detect(net, im, boxes=None):
         scores (ndarray): R x K array of object class scores (K includes
             background as object category 0)
         boxes (ndarray): R x (4*K) array of predicted bounding boxes
+        pose (ndarray): R x (K) array of predicted azimuth in degrees
     """
     blobs, im_scales = _get_blobs(im, boxes)
 
@@ -182,7 +183,24 @@ def im_detect(net, im, boxes=None):
         scores = scores[inv_index, :]
         pred_boxes = pred_boxes[inv_index, :]
 
-    return scores, pred_boxes
+    if cfg.TEST.HAS_POSE:
+        aux_pose = blobs_out['pose_pred']
+        n, nc = aux_pose.shape
+        # Normalize and convert to angles
+        pred_poses = np.zeros( (n, nc/2) )
+        
+        for ix in range(n):
+            for ij in range(nc/2):
+                pose = aux_pose[ix, (ij*2):(ij*2 + 2)]
+                norm = np.linalg.norm( (pose) )
+                pose = pose / norm
+                pred_poses[ix, ij] = np.arctan2( pose[1], pose[0] ) * 180 / np.pi
+
+                # Cast to 360 degree
+                if pred_poses[ix, ij] < 0:
+                    pred_poses[ix, ij] = 360-pred_poses[ix, ij] 
+
+    return scores, pred_boxes, pred_poses
 
 def vis_detections(im, class_name, dets, thresh=0.3):
     """Visual debugging of detections."""
@@ -216,7 +234,7 @@ def apply_nms(all_boxes, thresh):
             dets = all_boxes[cls_ind][im_ind]
             if dets == []:
                 continue
-            keep = nms(dets, thresh)
+            keep = nms(dets[:,:-1], thresh)
             if len(keep) == 0:
                 continue
             nms_boxes[cls_ind][im_ind] = dets[keep, :].copy()
@@ -251,7 +269,7 @@ def test_net(net, imdb):
 
     if not cfg.TEST.HAS_RPN:
         roidb = imdb.roidb
-
+    
     for i in xrange(num_images):
         # filter out any ground truth boxes
         if cfg.TEST.HAS_RPN:
@@ -260,7 +278,7 @@ def test_net(net, imdb):
             box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
-        scores, boxes = im_detect(net, im, box_proposals)
+        scores, boxes, poses  = im_detect(net, im, box_proposals)
         _t['im_detect'].toc()
 
         _t['misc'].tic()
@@ -271,6 +289,7 @@ def test_net(net, imdb):
             top_inds = np.argsort(-cls_scores)[:max_per_image]
             cls_scores = cls_scores[top_inds]
             cls_boxes = cls_boxes[top_inds, :]
+            cls_poses = poses[top_inds, j]
             # push new scores onto the minheap
             for val in cls_scores:
                 heapq.heappush(top_scores[j], val)
@@ -282,12 +301,12 @@ def test_net(net, imdb):
                 thresh[j] = top_scores[j][0]
 
             all_boxes[j][i] = \
-                    np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
+                    np.hstack((cls_boxes, cls_scores[:, np.newaxis], cls_poses[:, np.newaxis])) \
                     .astype(np.float32, copy=False)
 
             if 0:
-                keep = nms(all_boxes[j][i], 0.3)
-                vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :])
+                keep = nms(all_boxes[j][i][:,:-1], 0.3)
+                vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :-1])
         _t['misc'].toc()
 
         print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
@@ -296,7 +315,7 @@ def test_net(net, imdb):
 
     for j in xrange(1, imdb.num_classes):
         for i in xrange(num_images):
-            inds = np.where(all_boxes[j][i][:, -1] > thresh[j])[0]
+            inds = np.where(all_boxes[j][i][:, -2] > thresh[j])[0]
             all_boxes[j][i] = all_boxes[j][i][inds, :]
 
     det_file = os.path.join(output_dir, 'detections.pkl')
