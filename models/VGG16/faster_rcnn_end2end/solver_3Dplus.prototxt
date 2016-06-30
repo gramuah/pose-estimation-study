@@ -1,5 +1,5 @@
 train_net: "models/VGG16/faster_rcnn_end2end/train_3Dplus.prototxt"
-base_lr: 0.001
+base_lr: 0.000001
 lr_policy: "step"
 gamma: 0.1
 stepsize: 50000
@@ -12,5 +12,5 @@ weight_decay: 0.0005
 # function
 snapshot: 0
 # We still use the snapshot prefix, though
-snapshot_prefix: "vgg16_faster_rcnn_3Dplus"
+snapshot_prefix: "3Dplus_continuous_pose"
 iter_size: 2

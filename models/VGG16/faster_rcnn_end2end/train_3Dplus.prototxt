@@ -609,15 +609,15 @@ layer {
   }
 }
 layer {
-  name: "cls_score"
+  name: "cls_score_3Dplus"
   type: "InnerProduct"
   bottom: "fc7"
-  top: "cls_score"
+  top: "cls_score_3Dplus"
   param {
-    lr_mult: 1
+    lr_mult: 1000
   }
   param {
-    lr_mult: 2
+    lr_mult: 2000
   }
   inner_product_param {
     num_output: 13
@@ -632,15 +632,15 @@ layer {
   }
 }
 layer {
-  name: "bbox_pred"
+  name: "bbox_pred_3Dplus"
   type: "InnerProduct"
   bottom: "fc7"
-  top: "bbox_pred"
+  top: "bbox_pred_3Dplus"
   param {
-    lr_mult: 1
+    lr_mult: 1000
   }
   param {
-    lr_mult: 2
+    lr_mult: 2000
   }
   inner_product_param {
     num_output: 52
@@ -656,15 +656,15 @@ layer {
 }
 
 layer {
-  name: "pose_pred"
+  name: "pose_pred_3Dplus"
   type: "InnerProduct"
   bottom: "fc7"
-  top: "pose_pred"
+  top: "pose_pred_3Dplus"
   param {
-    lr_mult: 1
+    lr_mult: 1000
   }
   param {
-    lr_mult: 2
+    lr_mult: 2000
   }
   inner_product_param {
     num_output: 26
@@ -682,7 +682,7 @@ layer {
 layer {
   name: "loss_cls"
   type: "SoftmaxWithLoss"
-  bottom: "cls_score"
+  bottom: "cls_score_3Dplus"
   bottom: "labels"
   propagate_down: 1
   propagate_down: 0
@@ -692,7 +692,7 @@ layer {
 layer {
   name: "loss_bbox"
   type: "SmoothL1Loss"
-  bottom: "bbox_pred"
+  bottom: "bbox_pred_3Dplus"
   bottom: "bbox_targets"
   bottom: "bbox_inside_weights"
   bottom: "bbox_outside_weights"
@@ -703,7 +703,7 @@ layer {
 layer {
   name: "loss_pose"
   type: "Python"
-  bottom: "pose_pred"
+  bottom: "pose_pred_3Dplus"
   bottom: "sample_azimuths"  # Pose label
   bottom: "labels"  	     # Class label
   top: "loss_pose"

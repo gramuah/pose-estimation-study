@@ -551,10 +551,10 @@ layer {
   }
 }
 layer {
-  name: "cls_score"
+  name: "cls_score_3Dplus"
   type: "InnerProduct"
   bottom: "fc7"
-  top: "cls_score"
+  top: "cls_score_3Dplus"
   param {
     lr_mult: 1
     decay_mult: 1
@@ -576,10 +576,10 @@ layer {
   }
 }
 layer {
-  name: "bbox_pred"
+  name: "bbox_pred_3Dplus"
   type: "InnerProduct"
   bottom: "fc7"
-  top: "bbox_pred"
+  top: "bbox_pred_3Dplus"
   param {
     lr_mult: 1
     decay_mult: 1
@@ -602,10 +602,10 @@ layer {
 }
 
 layer {
-  name: "pose_pred"
+  name: "pose_pred_3Dplus"
   type: "InnerProduct"
   bottom: "fc7"
-  top: "pose_pred"
+  top: "pose_pred_3Dplus"
   param {
     lr_mult: 1
   }
@@ -620,6 +620,6 @@ layer {
 layer {
   name: "cls_prob"
   type: "Softmax"
-  bottom: "cls_score"
+  bottom: "cls_score_3Dplus"
   top: "cls_prob"
 }

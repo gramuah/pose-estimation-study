@@ -60,19 +60,19 @@ class SolverWrapper(object):
 
         scale_bbox_params = (cfg.TRAIN.BBOX_REG and
                              cfg.TRAIN.BBOX_NORMALIZE_TARGETS and
-                             net.params.has_key('bbox_pred'))
+                             net.params.has_key('bbox_pred_3Dplus'))
 
         if scale_bbox_params:
             # save original values
-            orig_0 = net.params['bbox_pred'][0].data.copy()
-            orig_1 = net.params['bbox_pred'][1].data.copy()
+            orig_0 = net.params['bbox_pred_3Dplus'][0].data.copy()
+            orig_1 = net.params['bbox_pred_3Dplus'][1].data.copy()
 
             # scale and shift with bbox reg unnormalization; then save snapshot
-            net.params['bbox_pred'][0].data[...] = \
-                    (net.params['bbox_pred'][0].data *
+            net.params['bbox_pred_3Dplus'][0].data[...] = \
+                    (net.params['bbox_pred_3Dplus'][0].data *
                      self.bbox_stds[:, np.newaxis])
-            net.params['bbox_pred'][1].data[...] = \
-                    (net.params['bbox_pred'][1].data *
+            net.params['bbox_pred_3Dplus'][1].data[...] = \
+                    (net.params['bbox_pred_3Dplus'][1].data *
                      self.bbox_stds + self.bbox_means)
 
         if not os.path.exists(self.output_dir):
@@ -89,12 +89,22 @@ class SolverWrapper(object):
 
         if scale_bbox_params:
             # restore net to original state
-            net.params['bbox_pred'][0].data[...] = orig_0
-            net.params['bbox_pred'][1].data[...] = orig_1
+            net.params['bbox_pred_3Dplus'][0].data[...] = orig_0
+            net.params['bbox_pred_3Dplus'][1].data[...] = orig_1
         return filename
 
     def train_model(self, max_iters):
         """Network training loop."""
+        
+#         iter_v = []
+#         cls_grad_v = []
+#         bbx_grad_v = []
+#         pose_grad_v = []
+#         
+#         cls_w_v = []
+#         bbx_w_v = []
+#         pose_w_v = []
+        
         last_snapshot_iter = -1
         timer = Timer()
         model_paths = []
@@ -103,6 +113,31 @@ class SolverWrapper(object):
             timer.tic()
             self.solver.step(1)
             timer.toc()
+
+#             # Capture gradients
+#             if (self.solver.iter % 20) == 0:
+#                 net = self.solver.net
+#                  
+#                 cls_grad = np.mean(net.blobs['cls_score_3Dplus'].diff, axis = 0)
+#                 cls_grad = np.linalg.norm(cls_grad)
+#                 print "Cls grad:", cls_grad
+#                  
+#                 bbx_grad = np.mean(net.blobs['bbox_pred_3Dplus'].diff, axis = 0)
+#                 bbx_grad = np.linalg.norm(bbx_grad)
+#                 print "BBX grad:", bbx_grad
+#                  
+#                 pose_grad = np.mean(net.blobs['pose_pred_3Dplus'].diff, axis = 0)
+#                 pose_grad = np.linalg.norm(pose_grad)
+#                 print "pose grad:", pose_grad
+#  
+#                 iter_v.append(self.solver.iter)
+#                 cls_grad_v.append(cls_grad)
+#                 bbx_grad_v.append(bbx_grad)
+#                 pose_grad_v.append(pose_grad)
+#  
+#                 cls_w_v.append( net.params['cls_score_3Dplus'][0].data[-1,-1] )
+#                 bbx_w_v.append( net.params['bbox_pred_3Dplus'][0].data[-1,-1] )
+#                 pose_w_v.append( net.params['pose_pred_3Dplus'][0].data[-1,-1] )
 
             if self.solver.iter % (10 * self.solver_param.display) == 0:
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
