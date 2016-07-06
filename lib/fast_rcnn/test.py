@@ -198,17 +198,18 @@ def im_detect(net, im, boxes=None):
 
                 # Cast to 360 degree
                 if pred_poses[ix, ij] < 0:
-                    pred_poses[ix, ij] = 360-pred_poses[ix, ij] 
+                    pred_poses[ix, ij] = 360+pred_poses[ix, ij] 
 
     return scores, pred_boxes, pred_poses
 
-def vis_detections(im, class_name, dets, thresh=0.3):
+def vis_detections(im, class_name, dets, im_ix, thresh=0.8):
     """Visual debugging of detections."""
     import matplotlib.pyplot as plt
     im = im[:, :, (2, 1, 0)]
     for i in xrange(np.minimum(10, dets.shape[0])):
         bbox = dets[i, :4]
-        score = dets[i, -1]
+        score = dets[i, -2]
+        pose = dets[i, -1]
         if score > thresh:
             plt.cla()
             plt.imshow(im)
@@ -218,8 +219,9 @@ def vis_detections(im, class_name, dets, thresh=0.3):
                               bbox[3] - bbox[1], fill=False,
                               edgecolor='g', linewidth=3)
                 )
-            plt.title('{}  {:.3f}'.format(class_name, score))
+            plt.title('{}  {:.3f} {:.2f} deg'.format(class_name, score, pose))
             plt.show()
+#             plt.savefig("/home/dani/qualitativos/{:03d}.jpg".format(im_ix))
 
 def apply_nms(all_boxes, thresh):
     """Apply non-maximum suppression to all predicted boxes output by the
@@ -269,7 +271,7 @@ def test_net(net, imdb):
 
     if not cfg.TEST.HAS_RPN:
         roidb = imdb.roidb
-    
+
     for i in xrange(num_images):
         # filter out any ground truth boxes
         if cfg.TEST.HAS_RPN:
@@ -304,9 +306,9 @@ def test_net(net, imdb):
                     np.hstack((cls_boxes, cls_scores[:, np.newaxis], cls_poses[:, np.newaxis])) \
                     .astype(np.float32, copy=False)
 
-            if 0:
+            if 1:
                 keep = nms(all_boxes[j][i][:,:-1], 0.3)
-                vis_detections(im, imdb.classes[j], all_boxes[j][i][keep, :-1])
+                vis_detections(im, imdb.classes[j], all_boxes[j][i][keep], i)
         _t['misc'].toc()
 
         print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \

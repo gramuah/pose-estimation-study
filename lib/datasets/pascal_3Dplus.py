@@ -19,6 +19,9 @@ import cPickle
 import subprocess
 from statvfs import F_NAMEMAX
 
+import random
+
+
 class pascal_3Dplus(datasets.imdb):
     def __init__(self, data_split=None, pascal3Dplus_path=None, pascal_path=None):
         datasets.imdb.__init__(self, '3Dplus')
@@ -199,7 +202,7 @@ class pascal_3Dplus(datasets.imdb):
 
         gt_roidb = [self._load_pascal_annotation(index)
                     for index in self.image_index]
-         
+        
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
         print 'wrote gt roidb to {}'.format(cache_file)
@@ -367,6 +370,9 @@ class pascal_3Dplus(datasets.imdb):
         if not os.path.exists(results_path):
             os.makedirs(results_path)
 
+        pose_step = 360.0/self.config['n_bins']
+        last_bin_angle = 360 - pose_step/2.0
+
         # PASCAL/VOCdevkit/results/VOC2012/Main/aeroplane_4_val.mat
         path = os.path.join(results_path, comp_id + '_')
         for cls_ind, cls in enumerate(self._classes):
@@ -374,6 +380,8 @@ class pascal_3Dplus(datasets.imdb):
                 continue
             print 'Writing {} VOC results file'.format(cls)
             filename = path + cls + "_" + str(self.config["n_bins"]) + "_" + self._image_set + '.mat'
+            filename_txt = path + cls + "_" + str(self.config["n_bins"]) + "_" + self._image_set + '.txt'
+            f = open(filename_txt, 'w')
 
             pascal_det_mat = []
             
@@ -392,16 +400,25 @@ class pascal_3Dplus(datasets.imdb):
                     # the VOCdevkit expects 1-based indices
                     bb = dets[k, 0:4] + 1 # Bounding box in 1 index
                     score = dets[k, -2]
-                    pose = int(dets[k, -1]/360.0/self.config['n_bins']) + 1 # Compute class + pose idx
+                    if dets[k, -1] > last_bin_angle:
+                        pose = 1
+                    else:
+                        pose = int( abs(dets[k, -1] - pose_step/2)/pose_step ) + 1 # Compute class + pose idx
 
                     d = np.hstack( (bb, pose, score) )
                     mat_dets.append(d)
+                    
+                    f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f} {:.2f} 0.0\n'.
+                                format(index, score,
+                                       dets[k, 0] + 1, dets[k, 1] + 1,
+                                       dets[k, 2] + 1, dets[k, 3] + 1, dets[k, -1]))
                     
                 # Append all the detections of an image
                 pascal_det_mat.append(mat_dets)    
             
             # Save mat
             sio.savemat(filename, {'dets' : pascal_det_mat} )     
+            f.close()
 
         return comp_id
 

@@ -669,12 +669,12 @@ layer {
   inner_product_param {
     num_output: 26
     weight_filler {
-      type: "constant"
-      std: 0
+      type: "gaussian"
+      std: 0.1
     }
     bias_filler {
       type: "constant"
-      value: 1
+      value: 0
     }
   }
 }

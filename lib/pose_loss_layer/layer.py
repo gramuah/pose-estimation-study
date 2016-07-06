@@ -21,6 +21,14 @@ class PoseLossLayer(caffe.Layer):
             raise Exception("Need two inputs to compute distance.")
         
         self.DEG2RAD_CONST = np.pi/180.0 
+        
+        # Pose weigths cls*n_bins
+        self.pose_weigths = [0.92, 1.06, 0.98, 1.04, 0.97, 1.07, 1.02, 1.06, \
+                             0.89, 0.99, 0.99, 1.02, 0.74, 1.10, 1.10, 1.10, \
+                             1.00, 1.08, 1.09, 1.01, 0.58, 0.90, 0.93, 0.87, \
+                             0.90, 1.07, 1.04, 1.02, 0.81, 1.10, 1.02, 1.03, \
+                             0.98, 1.07, 1.03, 1.06, 0.91, 1.10, 1.08, 1.03, \
+                             0.95, 1.09, 1.09, 0.99, 0.91, 1.10, 1.09, 1.03]
 
     def reshape(self, bottom, top):
         # check input dimensions match
@@ -70,15 +78,26 @@ class PoseLossLayer(caffe.Layer):
         
         # Get class labels
         cls_labels = bottom[2].data.astype(np.int32)    # Cast them to integer
+        pose_labels = bottom[1].data    # Poses
         
         for ix, cls in enumerate(cls_labels):
+          
             # First parameter
             bottom[0].diff[ix, cls*2] += self.inner_prod[ix]*bottom[0].data[ix, cls*2] / (self.pred_mod[ix]**3) \
                 -self.pol_labels[ix, 0] / self.pred_mod[ix]
             
             # Second parameter
             bottom[0].diff[ix, cls*2 + 1] += self.inner_prod[ix]*bottom[0].data[ix, cls*2+1] / (self.pred_mod[ix]**3) \
-                -self.pol_labels[ix, 1] / self.pred_mod[ix]            
+                -self.pol_labels[ix, 1] / self.pred_mod[ix]
+
+            # Weight loss           
+            wcls_ix = (cls-1)*4
+            pose_ix = int(pose_labels[ix, cls] * 4 /360) 
+            if pose_ix >= 4:
+                pose_ix = 3
+            w = self.pose_weigths[wcls_ix + pose_ix]                
+            bottom[0].diff[ix, cls*2:cls*2 + 2] *= w  
+    
         
         # Normalize output    
         bottom[0].diff[...] = bottom[0].diff[...] / bottom[0].num

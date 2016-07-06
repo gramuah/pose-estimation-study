@@ -12,5 +12,5 @@ weight_decay: 0.0005
 # function
 snapshot: 0
 # We still use the snapshot prefix, though
-snapshot_prefix: "3Dplus_continuous_pose"
+snapshot_prefix: "3Dplus_continuous_pose_RNG_2"
 iter_size: 2
