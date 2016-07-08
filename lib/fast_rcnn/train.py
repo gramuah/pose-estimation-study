@@ -45,7 +45,13 @@ class SolverWrapper(object):
             print ('Loading pretrained model '
                    'weights from {:s}').format(pretrained_model)
             self.solver.net.copy_from(pretrained_model)
-
+            
+#             # Clone fc layers
+#             self.solver.net.params['fc6_pose'][0].data[...] = self.solver.net.params['fc6'][0].data[...] # Data
+#             self.solver.net.params['fc6_pose'][1].data[...] = self.solver.net.params['fc6'][1].data[...] # Bias
+#             self.solver.net.params['fc7_pose'][0].data[...] = self.solver.net.params['fc7'][0].data[...] # Data
+#             self.solver.net.params['fc7_pose'][1].data[...] = self.solver.net.params['fc7'][1].data[...] # Bias
+            
         self.solver_param = caffe_pb2.SolverParameter()
         with open(solver_prototxt, 'rt') as f:
             pb2.text_format.Merge(f.read(), self.solver_param)

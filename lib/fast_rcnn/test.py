@@ -306,7 +306,7 @@ def test_net(net, imdb):
                     np.hstack((cls_boxes, cls_scores[:, np.newaxis], cls_poses[:, np.newaxis])) \
                     .astype(np.float32, copy=False)
 
-            if 1:
+            if 0:
                 keep = nms(all_boxes[j][i][:,:-1], 0.3)
                 vis_detections(im, imdb.classes[j], all_boxes[j][i][keep], i)
         _t['misc'].toc()
