@@ -601,96 +601,26 @@ layer {
   }
 }
 
-##                       POSE
-#layer {
-#  name: "fc6_pose"
-#  type: "InnerProduct"
-#  bottom: "pool5"
-#  top: "fc6_pose"
-#  param {
-#    lr_mult: 1000
-#  }
-#  param {
-#    lr_mult: 2000
-#  }
-#  inner_product_param {
-#    num_output: 4096
-#  }
-#}
-#layer {
-#  name: "relu6_pose"
-#  type: "ReLU"
-#  bottom: "fc6_pose"
-#  top: "fc6_pose"
-#}
-#layer {
-#  name: "drop6_pose"
-#  type: "Dropout"
-#  bottom: "fc6_pose"
-#  top: "fc6_pose"
-#  dropout_param {
-#    dropout_ratio: 0.5
-#  }
-#}
-#layer {
-#  name: "fc7_pose"
-#  type: "InnerProduct"
-#  bottom: "fc6_pose"
-#  top: "fc7_pose"
-#  param {
-#    lr_mult: 1000
-#  }
-#  param {
-#    lr_mult: 2000
-#  }
-#  inner_product_param {
-#    num_output: 4096
-#  }
-#}
-#layer {
-#  name: "relu7_pose"
-#  type: "ReLU"
-#  bottom: "fc7_pose"
-#  top: "fc7_pose"
-#}
-#layer {
-#  name: "drop7_pose"
-#  type: "Dropout"
-#  bottom: "fc7_pose"
-#  top: "fc7_pose"
-#  dropout_param {
-#    dropout_ratio: 0.5
-#  }
-#}
-
 layer {
   name: "pose_pred_3Dplus"
   type: "InnerProduct"
   bottom: "fc7"
-#    bottom: "fc7_pose"
   top: "pose_pred_3Dplus"
   param {
-    lr_mult: 1000
+    lr_mult: 0.01
   }
   param {
-    lr_mult: 2000
+    lr_mult: 0.02
   }
   inner_product_param {
     num_output: 26
     weight_filler {
       type: "gaussian"
-      std: 0.1
+      std: 0.001
     }
     bias_filler {
       type: "constant"
       value: 0
     }
   }
-}
-
-layer {
-  name: "cls_prob"
-  type: "Softmax"
-  bottom: "cls_score_3Dplus"
-  top: "cls_prob"
 }

@@ -141,10 +141,10 @@ layer {
   bottom: "pool2"
   top: "conv3_1"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 256
@@ -164,10 +164,10 @@ layer {
   bottom: "conv3_1"
   top: "conv3_2"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 256
@@ -187,10 +187,10 @@ layer {
   bottom: "conv3_2"
   top: "conv3_3"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 256
@@ -221,10 +221,10 @@ layer {
   bottom: "pool3"
   top: "conv4_1"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -244,10 +244,10 @@ layer {
   bottom: "conv4_1"
   top: "conv4_2"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -267,10 +267,10 @@ layer {
   bottom: "conv4_2"
   top: "conv4_3"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -301,10 +301,10 @@ layer {
   bottom: "pool4"
   top: "conv5_1"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -324,10 +324,10 @@ layer {
   bottom: "conv5_1"
   top: "conv5_2"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -347,10 +347,10 @@ layer {
   bottom: "conv5_2"
   top: "conv5_3"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -372,8 +372,8 @@ layer {
   type: "Convolution"
   bottom: "conv5_3"
   top: "rpn/output"
-  param { lr_mult: 1.0 }
-  param { lr_mult: 2.0 }
+  param { lr_mult: 0.0 }
+  param { lr_mult: 0.0 }
   convolution_param {
     num_output: 512
     kernel_size: 3 pad: 1 stride: 1
@@ -393,8 +393,8 @@ layer {
   type: "Convolution"
   bottom: "rpn/output"
   top: "rpn_cls_score"
-  param { lr_mult: 1.0 }
-  param { lr_mult: 2.0 }
+  param { lr_mult: 0.0 }
+  param { lr_mult: 0.0 }
   convolution_param {
     num_output: 18   # 2(bg/fg) * 9(anchors)
     kernel_size: 1 pad: 0 stride: 1
@@ -408,8 +408,8 @@ layer {
   type: "Convolution"
   bottom: "rpn/output"
   top: "rpn_bbox_pred"
-  param { lr_mult: 1.0 }
-  param { lr_mult: 2.0 }
+  param { lr_mult: 0.0 }
+  param { lr_mult: 0.0 }
   convolution_param {
     num_output: 36   # 4 * 9(anchors)
     kernel_size: 1 pad: 0 stride: 1
@@ -527,6 +527,8 @@ layer {
   top: 'bbox_inside_weights'
   top: 'bbox_outside_weights'
   top: 'sample_azimuths'
+  top: 'pose_inside_weights'
+  top: 'pose_outside_weights'
   python_param {
     module: 'rpn.proposal_target_layer'
     layer: 'ProposalTargetLayer'
@@ -614,10 +616,10 @@ layer {
   bottom: "fc7"
   top: "cls_score_3Dplus"
   param {
-    lr_mult: 1000
+    lr_mult: 1
   }
   param {
-    lr_mult: 2000
+    lr_mult: 2
   }
   inner_product_param {
     num_output: 13
@@ -637,10 +639,10 @@ layer {
   bottom: "fc7"
   top: "bbox_pred_3Dplus"
   param {
-    lr_mult: 1000
+    lr_mult: 1
   }
   param {
-    lr_mult: 2000
+    lr_mult: 2
   }
   inner_product_param {
     num_output: 52
@@ -655,104 +657,22 @@ layer {
   }
 }
 
-##                       POSE
-#layer {
-#  name: "fc6_pose"
-#  type: "InnerProduct"
-#  bottom: "pool5"
-#  top: "fc6_pose"
-#  param {
-#    lr_mult: 1000
-#  }
-#  param {
-#    lr_mult: 2000
-#  }
-#  inner_product_param {
-#    num_output: 4096
-#    
-#    weight_filler {
-#      type: "gaussian"
-#      std: 0.1
-#    }
-#    bias_filler {
-#      type: "constant"
-#      value: 0
-#    }
-#  }
-#  
-#}
-#layer {
-#  name: "relu6_pose"
-#  type: "ReLU"
-#  bottom: "fc6_pose"
-#  top: "fc6_pose"
-#}
-#layer {
-#  name: "drop6_pose"
-#  type: "Dropout"
-#  bottom: "fc6_pose"
-#  top: "fc6_pose"
-#  dropout_param {
-#    dropout_ratio: 0.5
-#  }
-#}
-#layer {
-#  name: "fc7_pose"
-#  type: "InnerProduct"
-#  bottom: "fc6_pose"
-#  top: "fc7_pose"
-#  param {
-#    lr_mult: 1000
-#  }
-#  param {
-#    lr_mult: 2000
-#  }
-#  inner_product_param {
-#    num_output: 4096
-#    
-#    weight_filler {
-#      type: "gaussian"
-#      std: 0.1
-#    }
-#    bias_filler {
-#      type: "constant"
-#      value: 0
-#    }
-#  }
-#}
-#layer {
-#  name: "relu7_pose"
-#  type: "ReLU"
-#  bottom: "fc7_pose"
-#  top: "fc7_pose"
-#}
-#layer {
-#  name: "drop7_pose"
-#  type: "Dropout"
-#  bottom: "fc7_pose"
-#  top: "fc7_pose"
-#  dropout_param {
-#    dropout_ratio: 0.5
-#  }
-#}
-
 layer {
   name: "pose_pred_3Dplus"
   type: "InnerProduct"
-#  bottom: "fc7_pose"
   bottom: "fc7"
   top: "pose_pred_3Dplus"
   param {
-    lr_mult: 1000
+    lr_mult: 0.01
   }
   param {
-    lr_mult: 2000
+    lr_mult: 0.02
   }
   inner_product_param {
     num_output: 26
     weight_filler {
       type: "gaussian"
-      value: 0.0001
+      std: 0.001
     }
     bias_filler {
       type: "constant"
@@ -784,15 +704,26 @@ layer {
 
 layer {
   name: "loss_pose"
-  type: "Python"
+  type: "SmoothL1Loss"
   bottom: "pose_pred_3Dplus"
-  bottom: "sample_azimuths"  # Pose label
-  bottom: "labels"  	     # Class label
+  bottom: "sample_azimuths"
+  bottom: "pose_inside_weights"
+  bottom: "pose_outside_weights"
   top: "loss_pose"
-    python_param {
-    module: "pose_loss_layer.layer"
-#    layer: "PoseLossLayer"
-    layer: "PoseEuclideanLossLayer"
-  }
   loss_weight: 1
 }
+
+# layer {
+#   name: "loss_pose"
+#   type: "Python"
+#   bottom: "pose_pred_3Dplus"
+#   bottom: "sample_azimuths"  # Pose label
+#   bottom: "labels"  	     # Class label
+#   top: "loss_pose"
+#     python_param {
+#     module: "pose_loss_layer.layer"
+#    layer: "PoseLossLayer"
+#     layer: "PoseLossLayer"
+#   }
+#   loss_weight: 1
+# }

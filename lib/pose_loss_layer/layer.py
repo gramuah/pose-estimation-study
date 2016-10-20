@@ -146,6 +146,9 @@ class PoseEuclideanLossLayer(caffe.Layer):
         # Init diff
         self.diff = np.zeros_like(bottom[0].data, dtype=np.float32)
         
+        # Count of fg objets
+        self.count = 1
+        
         # loss output is scalar
         top[0].reshape(1)
 
@@ -160,20 +163,29 @@ class PoseEuclideanLossLayer(caffe.Layer):
         self.diff = np.zeros_like(bottom[0].data, dtype=np.float32)
         
         cls_labels = bottom[2].data.astype(np.int32)    # Cast them to integer
-#         done= False
+        done= False
         inds = np.where(cls_labels > 0)[0]
+        self.count = 0
+#         for ix in range( len(cls_labels) ):
         for ix in inds:
             cls = cls_labels[ix]
             # Cast labels into polar cordinates (cos x sin x)
             rad_labels = bottom[1].data[ix,cls]*self.DEG2RAD_CONST
             polar_labels = np.hstack( (np.cos(rad_labels), np.sin(rad_labels) ) ).reshape((1,2))
             polar_pred = bottom[0].data[ix, cls*2:cls*2+2].reshape((1,2))
-                
-            self.diff[ix, cls:cls+2] = polar_pred - polar_labels
             
-        top[0].data[...] = np.sum(self.diff**2) / max(len(inds),1) / 2.
+#             if not done:
+#                 done = True
+#                 print "GT: ", polar_labels
+#                 print "Pred: ", polar_pred
+            
+            self.count += 1
+            self.diff[ix, cls:cls+2] = polar_pred - polar_labels
+        
+        self.count = max(self.count,1)
+        top[0].data[...] = np.sum(self.diff**2) / self.count / 2.
 
 
     def backward(self, top, propagate_down, bottom):
         # Normalize output    
-        bottom[0].diff[...] = self.diff[...] / bottom[0].num
+        bottom[0].diff[...] = self.diff[...] / self.count

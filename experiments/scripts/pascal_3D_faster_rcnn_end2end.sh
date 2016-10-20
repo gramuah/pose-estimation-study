@@ -13,7 +13,7 @@ export PYTHONUNBUFFERED="True"
 GPU_ID=$1
 NET=$2
 NET_lc=${NET,,}
-ITERS=100000
+ITERS=200000
 DATASET_TRAIN=3Dplus_trainval
 DATASET_TEST=3Dplus_test
 
@@ -22,7 +22,7 @@ len=${#array[@]}
 EXTRA_ARGS=${array[@]:2:$len}
 EXTRA_ARGS_SLUG=${EXTRA_ARGS// /_}
 
-LOG="experiments/logs/BASE_FTUNE_${EXTRA_ARGS_SLUG}.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
+LOG="experiments/logs/F1_SMOOTH_${EXTRA_ARGS_SLUG}.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
