@@ -62,7 +62,7 @@ class ProposalTargetLayer(caffe.Layer):
         # and other times after box coordinates -- normalize to one format
         gt_boxes = bottom[1].data
 
-        # Get azimuths gt
+        # Get polar_azimuths gt
         gt_azimuths = bottom[2].data
 
         # Include ground-truth boxes in the set of candidate rois
@@ -81,7 +81,7 @@ class ProposalTargetLayer(caffe.Layer):
 
         # Sample rois with classification labels and bounding box regression
         # targets
-        labels, rois, bbox_targets, bbox_inside_weights, pose_inside_weights, azimuths = \
+        labels, rois, bbox_targets, bbox_inside_weights, pose_inside_weights, polar_azimuths, discrete_azimuth = \
             _sample_rois(all_rois, gt_boxes, gt_azimuths, fg_rois_per_image,
                 rois_per_image, self._num_classes)
 
@@ -116,8 +116,8 @@ class ProposalTargetLayer(caffe.Layer):
         top[4].data[...] = np.array(bbox_inside_weights > 0).astype(np.float32)
         
         # Output azimuth
-        top[5].reshape(*azimuths.shape)
-        top[5].data[...] = azimuths
+        top[5].reshape(*polar_azimuths.shape)
+        top[5].data[...] = polar_azimuths
         
         # Pose inside_weights
         top[6].reshape(*pose_inside_weights.shape)
@@ -126,6 +126,10 @@ class ProposalTargetLayer(caffe.Layer):
         # Pose outside_weights
         top[7].reshape(*pose_inside_weights.shape)
         top[7].data[...] = np.array(pose_inside_weights > 0).astype(np.float32)
+        
+        # Pose discrete polar_azimuths
+        top[8].reshape(*discrete_azimuth.shape)
+        top[8].data[...] = discrete_azimuth
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
@@ -253,4 +257,4 @@ def _sample_rois(all_rois, gt_boxes, gt_azimuths, fg_rois_per_image, rois_per_im
     pose_targets, pose_inside_weights = \
         _get_pose_regression_labels(azimuth, labels, num_classes)
 
-    return labels, rois, bbox_targets, bbox_inside_weights, pose_inside_weights, pose_targets
+    return labels, rois, bbox_targets, bbox_inside_weights, pose_inside_weights, pose_targets, azimuth.astype(np.int32)
