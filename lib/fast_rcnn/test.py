@@ -184,23 +184,28 @@ def im_detect(net, im, boxes=None):
         pred_boxes = pred_boxes[inv_index, :]
 
     if cfg.TEST.HAS_POSE:
-        aux_pose = blobs_out['pose_pred_3Dplus']
+        # Continuous pose
+        aux_pose = blobs_out['continuous_pose_3Dplus']
         n, nc = aux_pose.shape
         # Normalize and convert to angles
-        pred_poses = np.zeros( (n, nc/2) )
-        
+        c_poses = np.zeros( (n, nc/2) )
         for ix in range(n):
             for ij in range(nc/2):
                 pose = aux_pose[ix, (ij*2):(ij*2 + 2)]
                 norm = np.linalg.norm( (pose) )
                 pose = pose / norm
-                pred_poses[ix, ij] = np.arctan2( pose[1], pose[0] ) * 180 / np.pi
+                c_poses[ix, ij] = np.arctan2( pose[1], pose[0] ) * 180 / np.pi
 
                 # Cast to 360 degree
-                if pred_poses[ix, ij] < 0:
-                    pred_poses[ix, ij] = 360+pred_poses[ix, ij] 
+                if c_poses[ix, ij] < 0:
+                    c_poses[ix, ij] = 360+c_poses[ix, ij] 
+        # Discrete poses
+        d_poses = np.zeros_like(scores)
+        for ix in range(1, d_poses.shape[1]):
+            sp = blobs_out['discrete_pose_prob_{}'.format(ix)]
+            d_poses[:,ix] = sp.argmax(axis=1)
 
-    return scores, pred_boxes, pred_poses
+    return scores, pred_boxes, c_poses
 
 def vis_detections(im, class_name, dets, im_ix, thresh=0.8):
     """Visual debugging of detections."""
@@ -219,6 +224,11 @@ def vis_detections(im, class_name, dets, im_ix, thresh=0.8):
                               bbox[3] - bbox[1], fill=False,
                               edgecolor='g', linewidth=3)
                 )
+            r_pose = (pose+90) * np.pi / 180.0
+            arrow_centre = [bbox[0] + (bbox[2] - bbox[0])/2, bbox[1] + (bbox[3] - bbox[1])/2]
+            arrow_peack = [arrow_centre[0]*np.cos(r_pose), arrow_centre[1]*np.sin(r_pose)]/(arrow_centre[0]+arrow_centre[1])*np.max(arrow_centre)
+            plt.arrow(arrow_centre[0], arrow_centre[1], arrow_peack[0], arrow_peack[1], head_width=10.0, head_length=10, fc='r', ec='r')
+            
             plt.title('{}  {:.3f} {:.2f} deg'.format(class_name, score, pose))
             plt.show()
 #             plt.savefig("/home/dani/qualitativos/{:03d}.jpg".format(im_ix))

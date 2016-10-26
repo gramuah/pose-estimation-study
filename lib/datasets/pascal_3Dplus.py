@@ -18,9 +18,7 @@ import utils.cython_bbox
 import cPickle
 import subprocess
 from statvfs import F_NAMEMAX
-
-import random
-
+from IPython.config.application import catch_config_error
 
 class pascal_3Dplus(datasets.imdb):
     def __init__(self, data_split=None, pascal3Dplus_path=None, pascal_path=None):
@@ -42,8 +40,12 @@ class pascal_3Dplus(datasets.imdb):
                        'use_salt' : True,
                        'top_k'    : 2000,
                        'use_diff' : False,
-                       'n_bins'   : 4,          # 4, 8, 16, 24
+                       'n_bins'   : 360,
+                       'eval_bins': 4,          # 4, 8, 16, 24
                        'rpn_file' : None} 
+
+        self._eval_az_interval = np.arange(360.0/(2*self.config['eval_bins']),360.0-360.0/(2*self.config['eval_bins'])+1,360.0/self.config['eval_bins'])
+        self._train_az_interval = np.arange(360.0/(2*self.config['n_bins']),360.0-360.0/(2*self.config['n_bins'])+1,360.0/self.config['n_bins'])
 
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_index = self._load_image_set_index()
@@ -202,7 +204,7 @@ class pascal_3Dplus(datasets.imdb):
 
         gt_roidb = [self._load_pascal_annotation(index)
                     for index in self.image_index]
-        
+         
         with open(cache_file, 'wb') as fid:
             cPickle.dump(gt_roidb, fid, cPickle.HIGHEST_PROTOCOL)
         print 'wrote gt roidb to {}'.format(cache_file)
@@ -270,6 +272,12 @@ class pascal_3Dplus(datasets.imdb):
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
+    def _find_interval(self, azimuth, interval_v):
+        if azimuth > interval_v[-1]:
+            return 0
+        else:          
+            return np.where( azimuth <= interval_v )[0][0]
+
     def _load_pascal_annotation(self, index):
         """
         Load image and bounding boxes info from .mat file in the PASCAL3D
@@ -294,7 +302,7 @@ class pascal_3Dplus(datasets.imdb):
         boxes = np.zeros((num_objs, 4), dtype=np.uint16)
         gt_classes = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
-        azimuths = np.zeros((num_objs, self.num_classes), dtype=np.float32)
+        azimuths = np.zeros((num_objs), dtype=np.int32)
         mask = np.zeros((num_objs), dtype=np.bool)
 
         # Load object bounding boxes into a data frame.
@@ -340,7 +348,7 @@ class pascal_3Dplus(datasets.imdb):
             boxes[ix, :] = np.asarray(aux_box, np.uint16)
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
-            azimuths[ix, cls] = azimuth
+            azimuths[ix] = self._find_interval(azimuth, self._train_az_interval)
 
         # Filter out classes
         overlaps = overlaps[mask]
@@ -370,21 +378,18 @@ class pascal_3Dplus(datasets.imdb):
         if not os.path.exists(results_path):
             os.makedirs(results_path)
 
-        pose_step = 360.0/self.config['n_bins']
-        last_bin_angle = 360 - pose_step/2.0
-
+        train_step = 360.0/self.config['n_bins']
+        
         # PASCAL/VOCdevkit/results/VOC2012/Main/aeroplane_4_val.mat
         path = os.path.join(results_path, comp_id + '_')
         for cls_ind, cls in enumerate(self._classes):
             if cls == '__background__':
                 continue
             print 'Writing {} VOC results file'.format(cls)
-            filename = path + cls + "_" + str(self.config["n_bins"]) + "_" + self._image_set + '.mat'
-            filename_txt = path + cls + "_" + str(self.config["n_bins"]) + "_" + self._image_set + '.txt'
+            filename = path + cls + "_" + str(4) + "_" + self._image_set + '.mat'
+            filename_txt = path + cls + "_" + str(4) + "_" + self._image_set + '.txt'
             f = open(filename_txt, 'w')
-
             pascal_det_mat = []
-            
             for im_ind, index in enumerate(self.image_index):
                 # Keep only the hash
                 index = index.split('/')[-1]
@@ -400,25 +405,24 @@ class pascal_3Dplus(datasets.imdb):
                     # the VOCdevkit expects 1-based indices
                     bb = dets[k, 0:4] + 1 # Bounding box in 1 index
                     score = dets[k, -2]
-                    if dets[k, -1] > last_bin_angle:
-                        pose = 1
-                    else:
-                        pose = int( abs(dets[k, -1] - pose_step/2)/pose_step ) + 1 # Compute class + pose idx
+                    pose_ix = dets[k, -1]    # Pose angle
+                    azimuth = pose_ix * train_step 
+                    eval_bin = self._find_interval(azimuth, self._eval_az_interval)+1
 
-                    d = np.hstack( (bb, pose, score) )
+                    d = np.hstack( (bb, eval_bin, score) )
                     mat_dets.append(d)
-                    
+
+                    # Save txt detections
                     f.write('{:s} {:.3f} {:.1f} {:.1f} {:.1f} {:.1f} {:.2f} 0.0\n'.
                                 format(index, score,
                                        dets[k, 0] + 1, dets[k, 1] + 1,
-                                       dets[k, 2] + 1, dets[k, 3] + 1, dets[k, -1]))
-                    
+                                       dets[k, 2] + 1, dets[k, 3] + 1, float(azimuth)))
+
                 # Append all the detections of an image
                 pascal_det_mat.append(mat_dets)    
             
             # Save mat
             sio.savemat(filename, {'dets' : pascal_det_mat} )     
-            f.close()
 
         return comp_id
 
@@ -433,7 +437,7 @@ class pascal_3Dplus(datasets.imdb):
         cmd += 'voc_eval(\'{:s}\',\'{:s}\',\'{:s}\',\'{:s}\',{:d},\'{:s}\',{:d}); quit;"' \
                .format(self._pascal3Dplus_path, comp_id,
                        self._image_set, self._get_result_folder(), 
-                       self.config['n_bins'], output_dir, int(rm_results))
+                       self.config['eval_bins'], output_dir, int(rm_results))
         print('Running:\n{}'.format(cmd))
         status = subprocess.call(cmd, shell=True)
 

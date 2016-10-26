@@ -575,6 +575,14 @@ layer {
     }
   }
 }
+
+layer {
+  name: "cls_prob"
+  type: "Softmax"
+  bottom: "cls_score_3Dplus"
+  top: "cls_prob"
+}
+
 layer {
   name: "bbox_pred_3Dplus"
   type: "InnerProduct"
@@ -601,11 +609,17 @@ layer {
   }
 }
 
+################################################################################
+#                                   POSE LAYERS                                #
+################################################################################
+
+# CONTINUOUS POSE LAYERS
+
 layer {
-  name: "pose_pred_3Dplus"
+  name: "continuous_pose_3Dplus"
   type: "InnerProduct"
   bottom: "fc7"
-  top: "pose_pred_3Dplus"
+  top: "continuous_pose_3Dplus"
   param {
     lr_mult: 0.01
   }
@@ -623,4 +637,390 @@ layer {
       value: 0
     }
   }
+}
+
+# DISCRETE POSE LAYERS
+
+#                       1
+layer {
+  name: "pose_score_1"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_1"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_1"
+  type: "Softmax"
+  bottom: "pose_score_1"
+  top: "discrete_pose_prob_1"
+}
+
+#                       2
+layer {
+  name: "pose_score_2"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_2"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_2"
+  type: "Softmax"
+  bottom: "pose_score_2"
+  top: "discrete_pose_prob_2"
+}
+
+#                       3
+layer {
+  name: "pose_score_3"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_3"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_3"
+  type: "Softmax"
+  bottom: "pose_score_3"
+  top: "discrete_pose_prob_3"
+}
+
+#                       4
+layer {
+  name: "pose_score_4"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_4"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_4"
+  type: "Softmax"
+  bottom: "pose_score_4"
+  top: "discrete_pose_prob_4"
+}
+
+#                       5
+layer {
+  name: "pose_score_5"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_5"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_5"
+  type: "Softmax"
+  bottom: "pose_score_5"
+  top: "discrete_pose_prob_5"
+}
+
+#                       6
+layer {
+  name: "pose_score_6"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_6"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_6"
+  type: "Softmax"
+  bottom: "pose_score_6"
+  top: "discrete_pose_prob_6"
+}
+
+#                       7
+layer {
+  name: "pose_score_7"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_7"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_7"
+  type: "Softmax"
+  bottom: "pose_score_7"
+  top: "discrete_pose_prob_7"
+}
+
+#                       8
+layer {
+  name: "pose_score_8"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_8"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_8"
+  type: "Softmax"
+  bottom: "pose_score_8"
+  top: "discrete_pose_prob_8"
+}
+
+#                       9
+layer {
+  name: "pose_score_9"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_9"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_9"
+  type: "Softmax"
+  bottom: "pose_score_9"
+  top: "discrete_pose_prob_9"
+}
+
+#                       10
+layer {
+  name: "pose_score_10"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_10"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_10"
+  type: "Softmax"
+  bottom: "pose_score_10"
+  top: "discrete_pose_prob_10"
+}
+
+#                       11
+layer {
+  name: "pose_score_11"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_11"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_11"
+  type: "Softmax"
+  bottom: "pose_score_11"
+  top: "discrete_pose_prob_11"
+}
+
+#                       12
+layer {
+  name: "pose_score_12"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_score_12"
+  param {
+    lr_mult: 1000
+  }
+  param {
+    lr_mult: 2000
+  }
+  inner_product_param {
+    num_output: 360
+    weight_filler {
+      type: "gaussian"
+      std: 0.01
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+
+layer {
+  name: "discrete_pose_prob_12"
+  type: "Softmax"
+  bottom: "pose_score_12"
+  top: "discrete_pose_prob_12"
 }

@@ -659,30 +659,6 @@ layer {
 }
 
 layer {
-  name: "pose_pred_3Dplus"
-  type: "InnerProduct"
-  bottom: "fc7"
-  top: "pose_pred_3Dplus"
-  param {
-    lr_mult: 0.01
-  }
-  param {
-    lr_mult: 0.02
-  }
-  inner_product_param {
-    num_output: 26
-    weight_filler {
-      type: "gaussian"
-      std: 0.001
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
-  }
-}
-
-layer {
   name: "loss_cls"
   type: "SoftmaxWithLoss"
   bottom: "cls_score_3Dplus"
@@ -708,6 +684,29 @@ layer {
 #                                   POSE LAYERS                                #
 ################################################################################
 
+layer {
+  name: "pose_pred_3Dplus"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_pred_3Dplus"
+  param {
+    lr_mult: 0.01
+  }
+  param {
+    lr_mult: 0.02
+  }
+  inner_product_param {
+    num_output: 26
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
 
 # CONTINUOUS POSE LAYERS
 layer {
