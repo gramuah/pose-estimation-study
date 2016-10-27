@@ -10,7 +10,7 @@ __sets = {}
 
 import datasets.pascal_3Dplus
 import datasets.pascal_voc
-import datasets.pascal_voc_car_pose
+import datasets.objectnet3D
 import numpy as np
 
 def _selective_search_IJCV_top_k(split, year, top_k):
@@ -47,6 +47,11 @@ for year in ['2007', '2012']:
 for split in ['train', 'val', 'trainval', 'test']:
     name = '3Dplus_' + split
     __sets[name] = lambda split=split: datasets.pascal_3Dplus(data_split = split)
+
+# Add ObjectNet3D
+for split in ['train', 'val', 'trainval', 'test', 'all']:
+    name = 'ObjectNet3D_' + split
+    __sets[name] = lambda split=split: datasets.objectnet3D.ObjectNet3D(data_split = split)
 
 # Set up voc_<year>_<split>_top_<k> using selective search "quality" mode
 # but only returning the first k boxes

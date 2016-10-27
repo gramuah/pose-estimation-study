@@ -7,8 +7,6 @@
 
 from .imdb import imdb
 from .pascal_voc import pascal_voc
-from .pascal_voc_car_pose import pascal_voc_car_pose
-from .pascal_voc_pose import pascal_voc_pose
 from .pascal_3Dplus import pascal_3Dplus
 from . import factory
 

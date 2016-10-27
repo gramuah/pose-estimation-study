@@ -46,12 +46,12 @@ class ProposalTargetLayer(caffe.Layer):
         top[3].reshape(1, self._num_classes * 4)
         # bbox_outside_weights
         top[4].reshape(1, self._num_classes * 4)
-        # azimuth labels
-        top[5].reshape(1, self._num_classes*2)
-        # bbox_inside_weights
-        top[6].reshape(1, self._num_classes * 2)
-        # bbox_outside_weights
-        top[7].reshape(1, self._num_classes * 2)
+        # azimuth pose
+        top[5].reshape(1, 24)
+        # elevation pose
+        top[6].reshape(1, 24)
+        # theta pose
+        top[7].reshape(1, 24)
 
     def forward(self, bottom, top):
         # Proposal ROIs (0, x1, y1, x2, y2) coming from RPN
@@ -62,8 +62,10 @@ class ProposalTargetLayer(caffe.Layer):
         # and other times after box coordinates -- normalize to one format
         gt_boxes = bottom[1].data
 
-        # Get polar_azimuths gt
+        # Get pose gt
         gt_azimuths = bottom[2].data
+        gt_elevations = bottom[3].data
+        gt_thetas = bottom[4].data
 
         # Include ground-truth boxes in the set of candidate rois
         zeros = np.zeros((gt_boxes.shape[0], 1), dtype=gt_boxes.dtype)
@@ -81,9 +83,11 @@ class ProposalTargetLayer(caffe.Layer):
 
         # Sample rois with classification labels and bounding box regression
         # targets
-        labels, rois, bbox_targets, bbox_inside_weights, pose_inside_weights, polar_azimuths, discrete_azimuth = \
-            _sample_rois(all_rois, gt_boxes, gt_azimuths, fg_rois_per_image,
-                rois_per_image, self._num_classes)
+        labels, rois, bbox_targets, bbox_inside_weights, \
+        azimuth_labels, elevation_labels, theta_labels = \
+            _sample_rois(all_rois, gt_boxes, gt_azimuths, gt_elevations, \
+                         gt_thetas, fg_rois_per_image,
+                         rois_per_image, self._num_classes)
 
         if DEBUG:
             print 'num fg: {}'.format((labels > 0).sum())
@@ -115,21 +119,15 @@ class ProposalTargetLayer(caffe.Layer):
         top[4].reshape(*bbox_inside_weights.shape)
         top[4].data[...] = np.array(bbox_inside_weights > 0).astype(np.float32)
         
-        # Output azimuth
-        top[5].reshape(*polar_azimuths.shape)
-        top[5].data[...] = polar_azimuths
+        # Output Pose
+        top[5].reshape(*azimuth_labels.shape)
+        top[5].data[...] = azimuth_labels
         
-        # Pose inside_weights
-        top[6].reshape(*pose_inside_weights.shape)
-        top[6].data[...] = pose_inside_weights
+        top[6].reshape(*elevation_labels.shape)
+        top[6].data[...] = elevation_labels
         
-        # Pose outside_weights
-        top[7].reshape(*pose_inside_weights.shape)
-        top[7].data[...] = np.array(pose_inside_weights > 0).astype(np.float32)
-        
-        # Pose discrete polar_azimuths
-        top[8].reshape(*discrete_azimuth.shape)
-        top[8].data[...] = discrete_azimuth
+        top[7].reshape(*theta_labels.shape)
+        top[7].data[...] = theta_labels
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
@@ -164,32 +162,6 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
         bbox_inside_weights[ind, start:end] = cfg.TRAIN.BBOX_INSIDE_WEIGHTS
     return bbox_targets, bbox_inside_weights
 
-def _get_pose_regression_labels(azimuth, labels, num_classes):
-    """
-    This function expands the azimuth targets into the N*2*K representation used
-    by the network (i.e. only one class has non-zero targets).
-    
-    The angles are decomposed into cos and sin.
-
-    Returns:
-        bbox_target (ndarray): N x 2K blob of regression targets
-        bbox_inside_weights (ndarray): N x 2K blob of loss weights
-    """
-
-    pose_targets = np.zeros((azimuth.shape[0], 2 * num_classes), dtype=np.float32)
-    pose_inside_weights = np.zeros(pose_targets.shape, dtype=np.float32)
-    inds = np.where(labels > 0)[0]
-    for ind in inds:
-        cls = labels[ind].astype(np.int32)
-        start = 2 * cls
-        end = start + 2
-        # Cast pose into radians
-        r_pose = azimuth[ind, cls] * np.pi / 180.0
-        pose_targets[ind, start:end] = [np.cos(r_pose), np.sin(r_pose)] 
-        pose_inside_weights[ind, start:end] = [1.0, 1.0]
-    return pose_targets, pose_inside_weights
-
-
 def _compute_targets(ex_rois, gt_rois, labels):
     """Compute bounding-box regression targets for an image."""
 
@@ -205,7 +177,8 @@ def _compute_targets(ex_rois, gt_rois, labels):
     return np.hstack(
             (labels[:, np.newaxis], targets)).astype(np.float32, copy=False)
 
-def _sample_rois(all_rois, gt_boxes, gt_azimuths, fg_rois_per_image, rois_per_image, num_classes):
+def _sample_rois(all_rois, gt_boxes, gt_azimuths, gt_elevations, gt_thetas, 
+                 fg_rois_per_image, rois_per_image, num_classes):
     """Generate a random sample of RoIs comprising foreground and background
     examples.
     """
@@ -217,6 +190,8 @@ def _sample_rois(all_rois, gt_boxes, gt_azimuths, fg_rois_per_image, rois_per_im
     max_overlaps = overlaps.max(axis=1)
     labels = gt_boxes[gt_assignment, 4]
     azimuth = gt_azimuths[gt_assignment]
+    elevation = gt_elevations[gt_assignment]
+    theta = gt_thetas[gt_assignment]
 
     # Select foreground RoIs as those with >= FG_THRESH overlap
     fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
@@ -243,9 +218,13 @@ def _sample_rois(all_rois, gt_boxes, gt_azimuths, fg_rois_per_image, rois_per_im
     # Select sampled values from various arrays:
     labels = labels[keep_inds]
     azimuth = azimuth[keep_inds]
+    elevation = elevation[keep_inds]
+    theta = theta[keep_inds]
     # Clamp labels for the background RoIs to 0
     labels[fg_rois_per_this_image:] = 0
     azimuth[fg_rois_per_this_image:] = 0
+    elevation[fg_rois_per_this_image:] = 0
+    theta[fg_rois_per_this_image:] = 0
     rois = all_rois[keep_inds]
 
     bbox_target_data = _compute_targets(
@@ -253,8 +232,5 @@ def _sample_rois(all_rois, gt_boxes, gt_azimuths, fg_rois_per_image, rois_per_im
 
     bbox_targets, bbox_inside_weights = \
         _get_bbox_regression_labels(bbox_target_data, num_classes)
-        
-    pose_targets, pose_inside_weights = \
-        _get_pose_regression_labels(azimuth, labels, num_classes)
 
-    return labels, rois, bbox_targets, bbox_inside_weights, pose_inside_weights, pose_targets, azimuth.astype(np.int32)
+    return labels, rois, bbox_targets, bbox_inside_weights, azimuth, elevation, theta

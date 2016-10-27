@@ -39,11 +39,15 @@ def get_minibatch(roidb, num_classes):
         gt_boxes[:, 0:4] = roidb[0]['boxes'][gt_inds, :] * im_scales[0]
         gt_boxes[:, 4] = roidb[0]['gt_classes'][gt_inds]
         gt_azimuths = roidb[0]['gt_azimuths'][gt_inds]
+        gt_elevations = roidb[0]['gt_elevations'][gt_inds]
+        gt_thetas = roidb[0]['gt_thetas'][gt_inds]
         blobs['gt_boxes'] = gt_boxes
         blobs['im_info'] = np.array(
             [[im_blob.shape[2], im_blob.shape[3], im_scales[0]]],
             dtype=np.float32)
         blobs['gt_azimuths'] = gt_azimuths
+        blobs['gt_elevations'] = gt_elevations
+        blobs['gt_thetas'] = gt_thetas
     else: # not using RPN
         # Now, build the region of interest and label blobs
         rois_blob = np.zeros((0, 5), dtype=np.float32)
