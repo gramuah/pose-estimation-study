@@ -697,8 +697,8 @@ layer {
   bottom: 'pose_elevation'
   bottom: 'pose_theta'
   top: "discrete_azimuth_label"
-  top: "discrete_elevation_label"
-  top: "discrete_theta_label"
+#  top: "discrete_elevation_label"
+#  top: "discrete_theta_label"
   python_param {
     module: 'rpn.pose_label_generator'
     layer: 'PoseLabelGenerator'
@@ -712,10 +712,10 @@ layer {
   bottom: "fc7"
   top: "azimuth_pred_objectnet"
   param {
-    lr_mult: 0.01
+    lr_mult: 0.1
   }
   param {
-    lr_mult: 0.02
+    lr_mult: 0.2
   }
   inner_product_param {
     num_output: 2424  # 101*24 -> Class number * angle bins
@@ -741,75 +741,75 @@ layer {
   loss_weight: 1
 }
 
-layer {
-  name: "elevation_pred_objectnet"
-  type: "InnerProduct"
-  bottom: "fc7"
-  top: "elevation_pred_objectnet"
-  param {
-    lr_mult: 0.01
-  }
-  param {
-    lr_mult: 0.02
-  }
-  inner_product_param {
-    num_output: 2424  # 101*24 -> Class number * angle bins
-    weight_filler {
-      type: "gaussian"
-      std: 0.001
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
-  }
-}
+#layer {
+#  name: "elevation_pred_objectnet"
+#  type: "InnerProduct"
+#  bottom: "fc7"
+#  top: "elevation_pred_objectnet"
+#  param {
+#    lr_mult: 0.01
+#  }
+#  param {
+#    lr_mult: 0.02
+#  }
+#  inner_product_param {
+#    num_output: 2424  # 101*24 -> Class number * angle bins
+#    weight_filler {
+#      type: "gaussian"
+#      std: 0.001
+#    }
+#    bias_filler {
+#      type: "constant"
+#      value: 0
+#    }
+#  }
+#}
 
-layer {
-  name: "loss_elevation"
-  type: "SoftmaxWithLoss"
-  bottom: "elevation_pred_objectnet"
-  bottom: "discrete_elevation_label"
-  propagate_down: 1
-  propagate_down: 0
-  top: "loss_elevation"
-  loss_weight: 1
-}
+#layer {
+#  name: "loss_elevation"
+#  type: "SoftmaxWithLoss"
+#  bottom: "elevation_pred_objectnet"
+#  bottom: "discrete_elevation_label"
+#  propagate_down: 1
+#  propagate_down: 0
+#  top: "loss_elevation"
+#  loss_weight: 1
+#}
 
-layer {
-  name: "theta_pred_objectnet"
-  type: "InnerProduct"
-  bottom: "fc7"
-  top: "theta_pred_objectnet"
-  param {
-    lr_mult: 0.01
-  }
-  param {
-    lr_mult: 0.02
-  }
-  inner_product_param {
-    num_output: 2424  # 101*24 -> Class number * angle bins
-    weight_filler {
-      type: "gaussian"
-      std: 0.001
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
-  }
-}
+#layer {
+#  name: "theta_pred_objectnet"
+#  type: "InnerProduct"
+#  bottom: "fc7"
+#  top: "theta_pred_objectnet"
+#  param {
+#    lr_mult: 0.01
+#  }
+#  param {
+#    lr_mult: 0.02
+#  }
+#  inner_product_param {
+#    num_output: 2424  # 101*24 -> Class number * angle bins
+#    weight_filler {
+#      type: "gaussian"
+#      std: 0.001
+#    }
+#    bias_filler {
+#      type: "constant"
+#      value: 0
+#    }
+#  }
+#}
 
-layer {
-  name: "loss_theta"
-  type: "SoftmaxWithLoss"
-  bottom: "theta_pred_objectnet"
-  bottom: "discrete_theta_label"
-  propagate_down: 1
-  propagate_down: 0
-  top: "loss_theta"
-  loss_weight: 1
-}
+#layer {
+#  name: "loss_theta"
+#  type: "SoftmaxWithLoss"
+#  bottom: "theta_pred_objectnet"
+#  bottom: "discrete_theta_label"
+#  propagate_down: 1
+#  propagate_down: 0
+#  top: "loss_theta"
+#  loss_weight: 1
+#}
 
 #layer {
 #  name: "loss_pose"

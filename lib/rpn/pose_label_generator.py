@@ -31,10 +31,10 @@ class PoseLabelGenerator(caffe.Layer):
 
         # Pose labels CLS = 1
         top[0].reshape(1, 1)
-        # Pose labels CLS = 2
-        top[1].reshape(1, 1)
-        # Pose labels CLS = 3
-        top[2].reshape(1, 1)
+#         # Pose labels CLS = 2
+#         top[1].reshape(1, 1)
+#         # Pose labels CLS = 3
+#         top[2].reshape(1, 1)
         
     def forward(self, bottom, top):
         # Get foreground labels
@@ -64,10 +64,10 @@ class PoseLabelGenerator(caffe.Layer):
         # Forward labels
         top[0].reshape(*azimuth_labels.shape)
         top[0].data[...] = azimuth_labels
-        top[1].reshape(*elevation_labels.shape)
-        top[1].data[...] = elevation_labels
-        top[2].reshape(*theta_labels.shape)
-        top[2].data[...] = theta_labels
+#         top[1].reshape(*elevation_labels.shape)
+#         top[1].data[...] = elevation_labels
+#         top[2].reshape(*theta_labels.shape)
+#         top[2].data[...] = theta_labels
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
