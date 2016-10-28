@@ -171,7 +171,7 @@ def im_detect(net, im, boxes=None):
 
     if cfg.TEST.BBOX_REG:
         # Apply bounding-box regression deltas
-        box_deltas = blobs_out['bbox_pred_3Dplus']
+        box_deltas = blobs_out['bbox_pred_objectnet']
         pred_boxes = bbox_transform_inv(boxes, box_deltas)
         pred_boxes = clip_boxes(pred_boxes, im.shape)
     else:
@@ -184,28 +184,37 @@ def im_detect(net, im, boxes=None):
         pred_boxes = pred_boxes[inv_index, :]
 
     if cfg.TEST.HAS_POSE:
-        # Continuous pose
-        aux_pose = blobs_out['continuous_pose_3Dplus']
-        n, nc = aux_pose.shape
-        # Normalize and convert to angles
-        c_poses = np.zeros( (n, nc/2) )
-        for ix in range(n):
-            for ij in range(nc/2):
-                pose = aux_pose[ix, (ij*2):(ij*2 + 2)]
-                norm = np.linalg.norm( (pose) )
-                pose = pose / norm
-                c_poses[ix, ij] = np.arctan2( pose[1], pose[0] ) * 180 / np.pi
-
-                # Cast to 360 degree
-                if c_poses[ix, ij] < 0:
-                    c_poses[ix, ij] = 360+c_poses[ix, ij] 
+#         # Continuous pose
+#         aux_pose = blobs_out['continuous_pose_3Dplus']
+#         n, nc = aux_pose.shape
+#         # Normalize and convert to angles
+#         c_poses = np.zeros( (n, nc/2) )
+#         for ix in range(n):
+#             for ij in range(nc/2):
+#                 pose = aux_pose[ix, (ij*2):(ij*2 + 2)]
+#                 norm = np.linalg.norm( (pose) )
+#                 pose = pose / norm
+#                 c_poses[ix, ij] = np.arctan2( pose[1], pose[0] ) * 180 / np.pi
+# 
+#                 # Cast to 360 degree
+#                 if c_poses[ix, ij] < 0:
+#                     c_poses[ix, ij] = 360+c_poses[ix, ij] 
         # Discrete poses
-        d_poses = np.zeros_like(scores)
-        for ix in range(1, d_poses.shape[1]):
-            sp = blobs_out['discrete_pose_prob_{}'.format(ix)]
-            d_poses[:,ix] = sp.argmax(axis=1)
+        d_azimuth = np.zeros_like(scores)
+        d_elevation = np.zeros_like(scores)
+        d_theta = np.zeros_like(scores)
+        for ix in range(1, d_azimuth.shape[1]):
+            start = ix * 24  # TODO: let's get this 24 from somewhere
+            end = start + 24
+            az_res = blobs_out['azimuth_prob']
+            ele_res = blobs_out['elevation_prob']
+            the_res = blobs_out['theta_prob']
+            bins_step = 360/24.0
+            d_azimuth[:,ix] = az_res[:, start:end].argmax(axis=1) * bins_step 
+            d_elevation[:,ix] = ele_res[:, start:end].argmax(axis=1) * bins_step
+            d_theta[:,ix] = the_res[:, start:end].argmax(axis=1) * bins_step
 
-    return scores, pred_boxes, c_poses
+    return scores, pred_boxes, d_azimuth, d_elevation, d_theta 
 
 def vis_detections(im, class_name, dets, im_ix, thresh=0.8):
     """Visual debugging of detections."""
@@ -213,8 +222,10 @@ def vis_detections(im, class_name, dets, im_ix, thresh=0.8):
     im = im[:, :, (2, 1, 0)]
     for i in xrange(np.minimum(10, dets.shape[0])):
         bbox = dets[i, :4]
-        score = dets[i, -2]
-        pose = dets[i, -1]
+        score = dets[i, 4]
+        azimuth = dets[i, 5]
+        elevation = dets[i, 6]
+        theta = dets[i, 7]
         if score > thresh:
             plt.cla()
             plt.imshow(im)
@@ -224,12 +235,12 @@ def vis_detections(im, class_name, dets, im_ix, thresh=0.8):
                               bbox[3] - bbox[1], fill=False,
                               edgecolor='g', linewidth=3)
                 )
-            r_pose = (pose+90) * np.pi / 180.0
+            r_pose = (azimuth+90) * np.pi / 180.0
             arrow_centre = [bbox[0] + (bbox[2] - bbox[0])/2, bbox[1] + (bbox[3] - bbox[1])/2]
             arrow_peack = [arrow_centre[0]*np.cos(r_pose), arrow_centre[1]*np.sin(r_pose)]/(arrow_centre[0]+arrow_centre[1])*np.max(arrow_centre)
             plt.arrow(arrow_centre[0], arrow_centre[1], arrow_peack[0], arrow_peack[1], head_width=10.0, head_length=10, fc='r', ec='r')
             
-            plt.title('{}  {:.3f} {:.2f} deg'.format(class_name, score, pose))
+            plt.title('{}  {:.3f} {:.2f} deg'.format(class_name, score, azimuth))
             plt.show()
 #             plt.savefig("/home/dani/qualitativos/{:03d}.jpg".format(im_ix))
 
@@ -246,7 +257,7 @@ def apply_nms(all_boxes, thresh):
             dets = all_boxes[cls_ind][im_ind]
             if dets == []:
                 continue
-            keep = nms(dets[:,:-1], thresh)
+            keep = nms(dets[:,:5], thresh)
             if len(keep) == 0:
                 continue
             nms_boxes[cls_ind][im_ind] = dets[keep, :].copy()
@@ -282,6 +293,7 @@ def test_net(net, imdb):
     if not cfg.TEST.HAS_RPN:
         roidb = imdb.roidb
 
+    num_images = 10
     for i in xrange(num_images):
         # filter out any ground truth boxes
         if cfg.TEST.HAS_RPN:
@@ -290,7 +302,7 @@ def test_net(net, imdb):
             box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
-        scores, boxes, poses  = im_detect(net, im, box_proposals)
+        scores, boxes, azimuths, elevations, thetas  = im_detect(net, im, box_proposals)
         _t['im_detect'].toc()
 
         _t['misc'].tic()
@@ -301,7 +313,9 @@ def test_net(net, imdb):
             top_inds = np.argsort(-cls_scores)[:max_per_image]
             cls_scores = cls_scores[top_inds]
             cls_boxes = cls_boxes[top_inds, :]
-            cls_poses = poses[top_inds, j]
+            cls_azimuth = azimuths[top_inds, j]
+            cls_elevation = elevations[top_inds, j]
+            cls_theta = thetas[top_inds, j]
             # push new scores onto the minheap
             for val in cls_scores:
                 heapq.heappush(top_scores[j], val)
@@ -313,11 +327,14 @@ def test_net(net, imdb):
                 thresh[j] = top_scores[j][0]
 
             all_boxes[j][i] = \
-                    np.hstack((cls_boxes, cls_scores[:, np.newaxis], cls_poses[:, np.newaxis])) \
+                    np.hstack((cls_boxes, cls_scores[:, np.newaxis], \
+                               cls_azimuth[:, np.newaxis], \
+                               cls_elevation[:, np.newaxis], \
+                               cls_theta[:, np.newaxis])) \
                     .astype(np.float32, copy=False)
 
             if 0:
-                keep = nms(all_boxes[j][i][:,:-1], 0.3)
+                keep = nms(all_boxes[j][i][:,0:5], 0.3)
                 vis_detections(im, imdb.classes[j], all_boxes[j][i][keep], i)
         _t['misc'].toc()
 

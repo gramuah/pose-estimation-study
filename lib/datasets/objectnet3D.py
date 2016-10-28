@@ -20,6 +20,8 @@ import subprocess
 from statvfs import F_NAMEMAX
 from IPython.config.application import catch_config_error
 from docutils.nodes import thead
+import datasets.pose_utils as putls
+
 
 class ObjectNet3D(datasets.imdb):
     def __init__(self, data_split=None):
@@ -36,12 +38,12 @@ class ObjectNet3D(datasets.imdb):
                        'use_salt' : True,
                        'top_k'    : 2000,
                        'use_diff' : False,
-                       'n_bins'   : 360,
-                       'eval_bins': 4,          # 4, 8, 16, 24
+                       'n_bins'   : 24,
+                       'eval_bins': 24,          # 4, 8, 16, 24
                        'rpn_file' : None} 
 
-        self._eval_az_interval = np.arange(360.0/(2*self.config['eval_bins']),360.0-360.0/(2*self.config['eval_bins'])+1,360.0/self.config['eval_bins'])
-        self._train_az_interval = np.arange(360.0/(2*self.config['n_bins']),360.0-360.0/(2*self.config['n_bins'])+1,360.0/self.config['n_bins'])
+        self._eval_az_interval = putls.generate_interval(self.config['eval_bins'])
+        self._train_az_interval = putls.generate_interval(self.config['n_bins'])
 
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_index = self._load_image_set_index()
@@ -321,26 +323,28 @@ class ObjectNet3D(datasets.imdb):
         for cls_ind, cls in enumerate(self._classes):
             if cls == '__background__':
                 continue
-            print 'Writing {} VOC results file'.format(cls)
-            filename_txt = path + cls + "_" + str(4) + "_" + self._image_set + '.txt'
+            print 'Writing {} results file'.format(cls)
+            filename_txt = path + cls + "_" + self._image_set + '.txt'
             f = open(filename_txt, 'w')
-            pascal_det_mat = []
             for im_ind, index in enumerate(self.image_index):
                 # Keep only the hash
                 index = index.split('/')[-1]
                 dets = all_boxes[ cls_ind ][im_ind]
 
                 if dets == []:
-                    pascal_det_mat.append(dets)
                     continue
                 
                 # Collect all the detections of that image
                 for k in xrange(dets.shape[0]):
                     # the VOCdevkit expects 1-based indices
-                    score = dets[k, -4]
-                    azimuth = dets[k, -3]*180/np.pi       # Azimuth angle
-                    elevation = dets[k, -2]*180/np.pi     # Elevation angle
-                    theta = dets[k, -1]*180/np.pi         # Zenith angle
+                    score = dets[k, 4]
+                    azimuth = dets[k, 5]       # Azimuth angle
+                    elevation = dets[k, 6]     # Elevation angle
+                    theta = dets[k, 7]         # Zenith angle
+                    # Change to ObjectNet3D angle representation
+                    azimuth = azimuth if azimuth <= 180 else azimuth - 360
+                    elevation = elevation if elevation <= 180 else elevation - 360
+                    theta = theta if theta <= 180 else theta - 360
 
                     # Save txt detections
                     f.write('{:s} {:.1f} {:.1f} {:.1f} {:.1f} {:.3f} {:.2f} {:.2f} {:.2f}\n'.
@@ -354,14 +358,13 @@ class ObjectNet3D(datasets.imdb):
         rm_results = self.config['cleanup']
 
         path = os.path.join(os.path.dirname(__file__),
-                            'PASCAL3D-matlab-wrapper')
+                            'OBJECTNET3D-matlab-wrapper')
         cmd = 'cd {} && '.format(path)
         cmd += '{:s} -nodisplay -nodesktop '.format(datasets.MATLAB)
         cmd += '-r "dbstop if error; '
-        cmd += 'voc_eval(\'{:s}\',\'{:s}\',\'{:s}\',\'{:s}\',{:d},\'{:s}\',{:d}); quit;"' \
-               .format(self._pascal3Dplus_path, comp_id,
-                       self._image_set, self._get_result_folder(), 
-                       self.config['eval_bins'], output_dir, int(rm_results))
+        cmd += 'VOCevaldetview(\'{:s}\',\'{:s}\',\'{:s}\',\'{:s}\'); quit;"' \
+               .format(comp_id, self._image_set, self._get_result_folder(), 
+                       output_dir)
         print('Running:\n{}'.format(cmd))
         status = subprocess.call(cmd, shell=True)
 
