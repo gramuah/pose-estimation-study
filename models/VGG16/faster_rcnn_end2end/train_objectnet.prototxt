@@ -702,7 +702,7 @@ layer {
   python_param {
     module: 'rpn.pose_label_generator'
     layer: 'PoseLabelGenerator'
-    param_str: "{'num_classes': 101, 'num_bins': 24}"
+    param_str: "{'num_classes': 101, 'num_bins': 360}"
   }
 }
 
@@ -718,7 +718,7 @@ layer {
     lr_mult: 0.2
   }
   inner_product_param {
-    num_output: 2424  # 101*24 -> Class number * angle bins
+    num_output: 36360  # 101*24 -> Class number * angle bins
     weight_filler {
       type: "gaussian"
       std: 0.001

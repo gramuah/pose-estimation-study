@@ -204,15 +204,15 @@ def im_detect(net, im, boxes=None):
         d_elevation = np.zeros_like(scores)
         d_theta = np.zeros_like(scores)
         for ix in range(1, d_azimuth.shape[1]):
-            start = ix * 24  # TODO: let's get this 24 from somewhere
-            end = start + 24
+            start = ix * 360  # TODO: let's get this 24 from somewhere
+            end = start + 360
             az_res = blobs_out['azimuth_prob']
-            ele_res = blobs_out['elevation_prob']
-            the_res = blobs_out['theta_prob']
-            bins_step = 360/24.0
+#             ele_res = blobs_out['elevation_prob']
+#             the_res = blobs_out['theta_prob']
+            bins_step = 1#360/24.0
             d_azimuth[:,ix] = az_res[:, start:end].argmax(axis=1) * bins_step 
-            d_elevation[:,ix] = ele_res[:, start:end].argmax(axis=1) * bins_step
-            d_theta[:,ix] = the_res[:, start:end].argmax(axis=1) * bins_step
+#             d_elevation[:,ix] = ele_res[:, start:end].argmax(axis=1) * bins_step
+#             d_theta[:,ix] = the_res[:, start:end].argmax(axis=1) * bins_step
 
     return scores, pred_boxes, d_azimuth, d_elevation, d_theta 
 
