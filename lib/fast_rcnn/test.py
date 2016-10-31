@@ -204,7 +204,7 @@ def im_detect(net, im, boxes=None, num_bins = 360):
         d_elevation = np.zeros_like(scores)
         d_theta = np.zeros_like(scores)
         for ix in range(1, d_azimuth.shape[1]):
-            start = ix * num_bins  # TODO: let's get this 24 from somewhere
+            start = ix * num_bins  
             end = start + num_bins
             az_res = blobs_out['azimuth_prob']
 #             ele_res = blobs_out['elevation_prob']
