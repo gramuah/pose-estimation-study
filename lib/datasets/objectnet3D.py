@@ -38,11 +38,9 @@ class ObjectNet3D(datasets.imdb):
                        'use_salt' : True,
                        'top_k'    : 2000,
                        'use_diff' : False,
-                       'n_bins'   : 24,
-                       'eval_bins': 24,          # 4, 8, 16, 24
+                       'n_bins'   : 360,
                        'rpn_file' : None} 
 
-        self._eval_az_interval = putls.generate_interval(self.config['eval_bins'])
         self._train_az_interval = putls.generate_interval(self.config['n_bins'])
 
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))

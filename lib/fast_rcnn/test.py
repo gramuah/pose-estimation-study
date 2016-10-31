@@ -106,7 +106,7 @@ def _get_blobs(im, rois):
         blobs['rois'] = _get_rois_blob(rois, im_scale_factors)
     return blobs, im_scale_factors
 
-def im_detect(net, im, boxes=None):
+def im_detect(net, im, boxes=None, num_bins = 360):
     """Detect object classes in an image given object proposals.
 
     Arguments:
@@ -204,12 +204,12 @@ def im_detect(net, im, boxes=None):
         d_elevation = np.zeros_like(scores)
         d_theta = np.zeros_like(scores)
         for ix in range(1, d_azimuth.shape[1]):
-            start = ix * 360  # TODO: let's get this 24 from somewhere
-            end = start + 360
+            start = ix * num_bins  # TODO: let's get this 24 from somewhere
+            end = start + num_bins
             az_res = blobs_out['azimuth_prob']
 #             ele_res = blobs_out['elevation_prob']
 #             the_res = blobs_out['theta_prob']
-            bins_step = 1#360/24.0
+            bins_step = 360/num_bins
             d_azimuth[:,ix] = az_res[:, start:end].argmax(axis=1) * bins_step 
 #             d_elevation[:,ix] = ele_res[:, start:end].argmax(axis=1) * bins_step
 #             d_theta[:,ix] = the_res[:, start:end].argmax(axis=1) * bins_step
@@ -293,7 +293,6 @@ def test_net(net, imdb):
     if not cfg.TEST.HAS_RPN:
         roidb = imdb.roidb
 
-    num_images = 10
     for i in xrange(num_images):
         # filter out any ground truth boxes
         if cfg.TEST.HAS_RPN:
@@ -302,7 +301,7 @@ def test_net(net, imdb):
             box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
         im = cv2.imread(imdb.image_path_at(i))
         _t['im_detect'].tic()
-        scores, boxes, azimuths, elevations, thetas  = im_detect(net, im, box_proposals)
+        scores, boxes, azimuths, elevations, thetas  = im_detect(net, im, box_proposals, imdb.config['n_bins'])
         _t['im_detect'].toc()
 
         _t['misc'].tic()
