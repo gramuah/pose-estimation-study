@@ -349,7 +349,7 @@ class ObjectNet3D(datasets.imdb):
                                 format(index,dets[k, 0] + 1, dets[k, 1] + 1,
                                        dets[k, 2] + 1, dets[k, 3] + 1, score,
                                        azimuth, elevation, theta))
-
+            f.close()
         return comp_id
 
     def _do_matlab_eval(self, comp_id, output_dir='output'):

@@ -343,7 +343,7 @@ def test_net(net, imdb):
 
     for j in xrange(1, imdb.num_classes):
         for i in xrange(num_images):
-            inds = np.where(all_boxes[j][i][:, -2] > thresh[j])[0]
+            inds = np.where(all_boxes[j][i][:, 4] > thresh[j])[0]
             all_boxes[j][i] = all_boxes[j][i][inds, :]
 
     det_file = os.path.join(output_dir, 'detections.pkl')
