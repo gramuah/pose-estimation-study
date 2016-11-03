@@ -613,35 +613,35 @@ layer {
 #                                  POSE                                        #
 ################################################################################
 layer {
-  name: "azimuth_pred_objectnet"
-  type: "InnerProduct"
-  bottom: "fc7"
-  top: "azimuth_pred_objectnet"
-  param {
-    lr_mult: 0.01
-  }
-  param {
-    lr_mult: 0.02
-  }
-  inner_product_param {
-    num_output: 36360  # 101*24 -> Class number * angle bins
-    weight_filler {
-      type: "gaussian"
-      std: 0.001
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
-  }
-}
+#  name: "azimuth_pred_objectnet"
+#  type: "InnerProduct"
+#  bottom: "fc7"
+#  top: "azimuth_pred_objectnet"
+#  param {
+#    lr_mult: 0.01
+#  }
+#  param {
+#    lr_mult: 0.02
+#  }
+#  inner_product_param {
+#    num_output: 36360  # 101*24 -> Class number * angle bins
+#    weight_filler {
+#      type: "gaussian"
+#      std: 0.001
+#    }
+#    bias_filler {
+#      type: "constant"
+#      value: 0
+#    }
+#  }
+#}
 
-layer {
-  name: "azimuth_prob"
-  type: "Softmax"
-  bottom: "azimuth_pred_objectnet"
-  top: "azimuth_prob"
-}
+#layer {
+#  name: "azimuth_prob"
+#  type: "Softmax"
+#  bottom: "azimuth_pred_objectnet"
+#  top: "azimuth_prob"
+#}
 
 
 #layer {

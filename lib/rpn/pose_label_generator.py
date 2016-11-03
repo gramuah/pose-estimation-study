@@ -24,7 +24,7 @@ class PoseLabelGenerator(caffe.Layer):
     def setup(self, bottom, top):
         """Setup the PoseLabelGenerator."""
         # parse the layer parameter string, which must be valid YAML
-        layer_params = yaml.load(self.param_str_)
+        layer_params = yaml.load(self.param_str)
         self._num_classes = layer_params['num_classes']
         self._num_bins = layer_params['num_bins']
         self._pose_interval = utls.generate_interval(self._num_bins)

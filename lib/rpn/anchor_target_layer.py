@@ -42,7 +42,7 @@ class AnchorTargetLayer(caffe.Layer):
             self._bg_sum = 0
             self._count = 0
 
-        layer_params = yaml.load(self.param_str_)
+        layer_params = yaml.load(self.param_str)
         self._feat_stride = layer_params['feat_stride']
 
         # allow boxes to sit over the edge by a small amount
