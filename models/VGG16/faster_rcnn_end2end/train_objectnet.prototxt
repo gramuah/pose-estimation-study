@@ -143,10 +143,10 @@ layer {
   bottom: "pool2"
   top: "conv3_1"
   param {
-    lr_mult: 0
+    lr_mult: 1
   }
   param {
-    lr_mult: 0
+    lr_mult: 2
   }
   convolution_param {
     num_output: 256
@@ -166,10 +166,10 @@ layer {
   bottom: "conv3_1"
   top: "conv3_2"
   param {
-    lr_mult: 0
+    lr_mult: 1
   }
   param {
-    lr_mult: 0
+    lr_mult: 2
   }
   convolution_param {
     num_output: 256
@@ -189,10 +189,10 @@ layer {
   bottom: "conv3_2"
   top: "conv3_3"
   param {
-    lr_mult: 0
+    lr_mult: 1
   }
   param {
-    lr_mult: 0
+    lr_mult: 2
   }
   convolution_param {
     num_output: 256
@@ -223,10 +223,10 @@ layer {
   bottom: "pool3"
   top: "conv4_1"
   param {
-    lr_mult: 0
+    lr_mult: 1
   }
   param {
-    lr_mult: 0
+    lr_mult: 2
   }
   convolution_param {
     num_output: 512
@@ -246,10 +246,10 @@ layer {
   bottom: "conv4_1"
   top: "conv4_2"
   param {
-    lr_mult: 0
+    lr_mult: 1
   }
   param {
-    lr_mult: 0
+    lr_mult: 2
   }
   convolution_param {
     num_output: 512
@@ -269,10 +269,10 @@ layer {
   bottom: "conv4_2"
   top: "conv4_3"
   param {
-    lr_mult: 0
+    lr_mult: 1
   }
   param {
-    lr_mult: 0
+    lr_mult: 2
   }
   convolution_param {
     num_output: 512
@@ -303,10 +303,10 @@ layer {
   bottom: "pool4"
   top: "conv5_1"
   param {
-    lr_mult: 0
+    lr_mult: 1
   }
   param {
-    lr_mult: 0
+    lr_mult: 2
   }
   convolution_param {
     num_output: 512
@@ -326,10 +326,10 @@ layer {
   bottom: "conv5_1"
   top: "conv5_2"
   param {
-    lr_mult: 0
+    lr_mult: 1
   }
   param {
-    lr_mult: 0
+    lr_mult: 2
   }
   convolution_param {
     num_output: 512
@@ -349,10 +349,10 @@ layer {
   bottom: "conv5_2"
   top: "conv5_3"
   param {
-    lr_mult: 0
+    lr_mult: 1
   }
   param {
-    lr_mult: 0
+    lr_mult: 2
   }
   convolution_param {
     num_output: 512
@@ -374,8 +374,8 @@ layer {
   type: "Convolution"
   bottom: "conv5_3"
   top: "rpn/output"
-  param { lr_mult: 0.0 }
-  param { lr_mult: 0.0 }
+  param { lr_mult: 1.0 }
+  param { lr_mult: 2.0 }
   convolution_param {
     num_output: 512
     kernel_size: 3 pad: 1 stride: 1
@@ -395,8 +395,8 @@ layer {
   type: "Convolution"
   bottom: "rpn/output"
   top: "rpn_cls_score"
-  param { lr_mult: 0.0 }
-  param { lr_mult: 0.0 }
+  param { lr_mult: 1.0 }
+  param { lr_mult: 2.0 }
   convolution_param {
     num_output: 18   # 2(bg/fg) * 9(anchors)
     kernel_size: 1 pad: 0 stride: 1
@@ -410,8 +410,8 @@ layer {
   type: "Convolution"
   bottom: "rpn/output"
   top: "rpn_bbox_pred"
-  param { lr_mult: 0.0 }
-  param { lr_mult: 0.0 }
+  param { lr_mult: 1.0 }
+  param { lr_mult: 2.0 }
   convolution_param {
     num_output: 36   # 4 * 9(anchors)
     kernel_size: 1 pad: 0 stride: 1
@@ -696,7 +696,7 @@ layer {
   bottom: 'pose_azimuth'
   bottom: 'pose_elevation'
   bottom: 'pose_theta'
-  top: "discrete_azimuth_label"
+#  top: "discrete_azimuth_label"
 #  top: "discrete_elevation_label"
 #  top: "discrete_theta_label"
   python_param {
@@ -706,40 +706,40 @@ layer {
   }
 }
 
-layer {
-  name: "azimuth_pred_objectnet"
-  type: "InnerProduct"
-  bottom: "fc7"
-  top: "azimuth_pred_objectnet"
-  param {
-    lr_mult: 0.1
-  }
-  param {
-    lr_mult: 0.2
-  }
-  inner_product_param {
-    num_output: 36360  # 101*24 -> Class number * angle bins
-    weight_filler {
-      type: "gaussian"
-      std: 0.001
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
-  }
-}
+#layer {
+#  name: "azimuth_pred_objectnet"
+#  type: "InnerProduct"
+#  bottom: "fc7"
+#  top: "azimuth_pred_objectnet"
+#  param {
+#    lr_mult: 0.1
+#  }
+#  param {
+#    lr_mult: 0.2
+#  }
+#  inner_product_param {
+#    num_output: 36360  # 101*24 -> Class number * angle bins
+#    weight_filler {
+#      type: "gaussian"
+#      std: 0.001
+#    }
+#    bias_filler {
+#      type: "constant"
+#      value: 0
+#    }
+#  }
+#}
 
-layer {
-  name: "loss_azimuth"
-  type: "SoftmaxWithLoss"
-  bottom: "azimuth_pred_objectnet"
-  bottom: "discrete_azimuth_label"
-  propagate_down: 1
-  propagate_down: 0
-  top: "loss_azimuth"
-  loss_weight: 1
-}
+#layer {
+#  name: "loss_azimuth"
+#  type: "SoftmaxWithLoss"
+#  bottom: "azimuth_pred_objectnet"
+#  bottom: "discrete_azimuth_label"
+#  propagate_down: 1
+#  propagate_down: 0
+#  top: "loss_azimuth"
+#  loss_weight: 1
+#}
 
 #layer {
 #  name: "elevation_pred_objectnet"
