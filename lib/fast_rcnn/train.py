@@ -46,11 +46,13 @@ class SolverWrapper(object):
                    'weights from {:s}').format(pretrained_model)
             self.solver.net.copy_from(pretrained_model)
             
-#             # Clone fc layers
-#             self.solver.net.params['fc6_pose'][0].data[...] = self.solver.net.params['fc6'][0].data[...] # Data
-#             self.solver.net.params['fc6_pose'][1].data[...] = self.solver.net.params['fc6'][1].data[...] # Bias
-#             self.solver.net.params['fc7_pose'][0].data[...] = self.solver.net.params['fc7'][0].data[...] # Data
-#             self.solver.net.params['fc7_pose'][1].data[...] = self.solver.net.params['fc7'][1].data[...] # Bias
+            # Clone to pose net
+            vgg_layers = ['conv1_1', 'conv1_2', 'conv2_1', 'conv2_2', 'conv3_1',\
+                          'conv3_2', 'conv3_3', 'conv4_1', 'conv4_2', 'conv4_3',\
+                          'conv5_1', 'conv5_2', 'conv5_3', 'fc6', 'fc7']
+            for layer_name in vgg_layers:
+                self.solver.net.params[layer_name + '_pose'][0].data[...] = self.solver.net.params[layer_name][0].data[...] # Data
+                self.solver.net.params[layer_name + '_pose'][1].data[...] = self.solver.net.params[layer_name][1].data[...] # Bias
             
         self.solver_param = caffe_pb2.SolverParameter()
         with open(solver_prototxt, 'rt') as f:
@@ -66,19 +68,19 @@ class SolverWrapper(object):
 
         scale_bbox_params = (cfg.TRAIN.BBOX_REG and
                              cfg.TRAIN.BBOX_NORMALIZE_TARGETS and
-                             net.params.has_key('bbox_pred_objectnet'))
+                             net.params.has_key('bbox_pred_3Dplus'))
 
         if scale_bbox_params:
             # save original values
-            orig_0 = net.params['bbox_pred_objectnet'][0].data.copy()
-            orig_1 = net.params['bbox_pred_objectnet'][1].data.copy()
+            orig_0 = net.params['bbox_pred_3Dplus'][0].data.copy()
+            orig_1 = net.params['bbox_pred_3Dplus'][1].data.copy()
 
             # scale and shift with bbox reg unnormalization; then save snapshot
-            net.params['bbox_pred_objectnet'][0].data[...] = \
-                    (net.params['bbox_pred_objectnet'][0].data *
+            net.params['bbox_pred_3Dplus'][0].data[...] = \
+                    (net.params['bbox_pred_3Dplus'][0].data *
                      self.bbox_stds[:, np.newaxis])
-            net.params['bbox_pred_objectnet'][1].data[...] = \
-                    (net.params['bbox_pred_objectnet'][1].data *
+            net.params['bbox_pred_3Dplus'][1].data[...] = \
+                    (net.params['bbox_pred_3Dplus'][1].data *
                      self.bbox_stds + self.bbox_means)
 
         if not os.path.exists(self.output_dir):
@@ -95,8 +97,8 @@ class SolverWrapper(object):
 
         if scale_bbox_params:
             # restore net to original state
-            net.params['bbox_pred_objectnet'][0].data[...] = orig_0
-            net.params['bbox_pred_objectnet'][1].data[...] = orig_1
+            net.params['bbox_pred_3Dplus'][0].data[...] = orig_0
+            net.params['bbox_pred_3Dplus'][1].data[...] = orig_1
         return filename
 
     def train_model(self, max_iters):

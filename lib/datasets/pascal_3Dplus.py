@@ -41,12 +41,10 @@ class pascal_3Dplus(datasets.imdb):
                        'use_salt' : True,
                        'top_k'    : 2000,
                        'use_diff' : False,
-                       'n_bins'   : 360,
                        'eval_bins': 4,          # 4, 8, 16, 24
                        'rpn_file' : None} 
 
         self._eval_az_interval = putls.generate_interval(self.config['eval_bins'])
-        self._train_az_interval = putls.generate_interval(self.config['n_bins'])
 
         self._class_to_ind = dict(zip(self.classes, xrange(self.num_classes)))
         self._image_index = self._load_image_set_index()
@@ -297,19 +295,32 @@ class pascal_3Dplus(datasets.imdb):
         boxes = np.zeros((num_objs, 4), dtype=np.uint16)
         gt_classes = np.zeros((num_objs), dtype=np.int32)
         overlaps = np.zeros((num_objs, self.num_classes), dtype=np.float32)
-        azimuths = np.zeros((num_objs), dtype=np.int32)
+        azimuths = np.zeros((num_objs), dtype=np.float32)
+        elevations = np.zeros((num_objs), dtype=np.float32)
+        thetas = np.zeros((num_objs), dtype=np.float32)
         mask = np.zeros((num_objs), dtype=np.bool)
 
         # Load object bounding boxes into a data frame.
         for ix, obj in enumerate(objs):
             aux_cls = str(getattr(obj, 'class'))
-            viewpoint_obj = getattr(obj, 'viewpoint')
-            if not hasattr(viewpoint_obj,'azimuth'):
+            if not hasattr(obj, 'viewpoint'):
+                # Wheck whether it has pose
+                mask[ix] = False
+                print "Ignored object without pose!"
+                continue
+            viewpoint_obj = getattr(obj, 'viewpoint')            
+            if not hasattr(viewpoint_obj,'azimuth') or not hasattr(viewpoint_obj,'elevation'):
                 # Some classes does not have pose on PASCAL 2012. We have to skip them.
                 mask[ix] = False
                 continue
             azimuth = getattr(viewpoint_obj, 'azimuth')
-            
+            elevation = getattr(viewpoint_obj, 'elevation')
+            theta = getattr(viewpoint_obj, 'theta')
+            # Correct angles
+            azimuth = azimuth if azimuth >= 0 else 360 + azimuth
+            elevation = elevation if elevation >= 0 else 360 + elevation
+            theta = theta if theta >= 0 else 360 + theta
+           
             # Check whether the object belong to our collection. If not, ignore
             mask[ix] = self._class_to_ind.has_key(aux_cls)
             if not mask[ix]:
@@ -343,13 +354,17 @@ class pascal_3Dplus(datasets.imdb):
             boxes[ix, :] = np.asarray(aux_box, np.uint16)
             gt_classes[ix] = cls
             overlaps[ix, cls] = 1.0
-            azimuths[ix] = putls.find_interval(azimuth, self._train_az_interval)
+            azimuths[ix] = azimuth
+            elevations[ix] = elevation
+            thetas[ix] = theta
 
         # Filter out classes
         overlaps = overlaps[mask]
         boxes = boxes[mask]
         gt_classes = gt_classes[mask]
         azimuths = azimuths[mask]
+        elevations = elevations[mask]
+        thetas = thetas[mask]
 
         overlaps = scipy.sparse.csr_matrix(overlaps)
 
@@ -357,6 +372,8 @@ class pascal_3Dplus(datasets.imdb):
                 'gt_classes':gt_classes,
                 'gt_overlaps': overlaps,
                 'gt_azimuths': azimuths,
+                'gt_elevations': elevations,
+                'gt_thetas': thetas,
                 'flipped': False}
 
     def _get_result_folder(self):
