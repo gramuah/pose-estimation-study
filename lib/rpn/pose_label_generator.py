@@ -26,7 +26,6 @@ class PoseLabelGenerator(caffe.Layer):
         # parse the layer parameter string, which must be valid YAML
         layer_params = yaml.load(self.param_str_)
         self._num_classes = layer_params['num_classes']
-        self._num_bins = layer_params['num_bins']
         self._pose_interval = utls.generate_interval(self._num_bins)
 
         # Pose labels for Azimuth
@@ -83,6 +82,54 @@ class PoseLabelGenerator(caffe.Layer):
     def reshape(self, bottom, top):
         """Reshaping happens during the call to forward."""
         pass
+
+
+class ContinuousPoseLabelGenerator(caffe.Layer):
+    """
+    Generate the TODO...
+    """
+    def setup(self, bottom, top):
+        """Setup the PoseLabelGenerator."""
+        # parse the layer parameter string, which must be valid YAML
+        layer_params = yaml.load(self.param_str_)
+        self._num_classes = layer_params['num_classes']
+        # Pose azimuth labels
+        top[0].reshape(1, self._num_classes*2)
+        # Pose elevation labels
+        top[1].reshape(1, self._num_classes*2)
+        # Pose theta labels
+        top[2].reshape(1, self._num_classes*2)
+        # Pose weights labels
+        top[3].reshape(1, self._num_classes*2)
+        
+    def forward(self, bottom, top):
+        # Get foreground labels
+        class_labels = bottom[0].data
+        # Get azimuths gt
+        fg_azimuths = bottom[1].data
+        fg_elevations = bottom[2].data
+        fg_thetas = bottom[3].data
+        # Get pose and weights
+        azimuth_labels, _ = self._get_pose_regression_labels(fg_azimuths, class_labels, self._num_classes)
+        elevation_labels, _ = self._get_pose_regression_labels(fg_elevations, class_labels, self._num_classes)
+        theta_labels, weights_vector = self._get_pose_regression_labels(fg_thetas, class_labels, self._num_classes)
+        # Forward data
+        top[0].reshape(*azimuth_labels.shape)
+        top[0].data[...] = azimuth_labels
+        top[1].reshape(*elevation_labels.shape)
+        top[1].data[...] = elevation_labels
+        top[2].reshape(*theta_labels.shape)
+        top[2].data[...] = theta_labels
+        top[3].reshape(*weights_vector.shape)
+        top[3].data[...] = weights_vector
+
+    def backward(self, top, propagate_down, bottom):
+        """This layer does not propagate gradients."""
+        pass
+
+    def reshape(self, bottom, top):
+        """Reshaping happens during the call to forward."""
+        pass
     
     def _get_pose_regression_labels(self, azimuth, labels, num_classes):
         """
@@ -104,7 +151,7 @@ class PoseLabelGenerator(caffe.Layer):
             start = 2 * cls
             end = start + 2
             # Cast pose into radians
-            r_pose = azimuth[ind, cls] * np.pi / 180.0
+            r_pose = azimuth[ind] * np.pi / 180.0
             pose_targets[ind, start:end] = [np.cos(r_pose), np.sin(r_pose)] 
             pose_inside_weights[ind, start:end] = [1.0, 1.0]
         return pose_targets, pose_inside_weights

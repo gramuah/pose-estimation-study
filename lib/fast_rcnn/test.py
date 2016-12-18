@@ -171,7 +171,7 @@ def im_detect(net, im, boxes=None, num_bins = 360):
 
     if cfg.TEST.BBOX_REG:
         # Apply bounding-box regression deltas
-        box_deltas = blobs_out['bbox_pred_3Dplus']
+        box_deltas = blobs_out['bbox_pred_objectnet']
         pred_boxes = bbox_transform_inv(boxes, box_deltas)
         pred_boxes = clip_boxes(pred_boxes, im.shape)
     else:
@@ -184,35 +184,57 @@ def im_detect(net, im, boxes=None, num_bins = 360):
         pred_boxes = pred_boxes[inv_index, :]
 
     if cfg.TEST.HAS_POSE:
-#         # Continuous pose
-#         aux_pose = blobs_out['continuous_pose_3Dplus']
-#         n, nc = aux_pose.shape
-#         # Normalize and convert to angles
-#         c_poses = np.zeros( (n, nc/2) )
-#         for ix in range(n):
-#             for ij in range(nc/2):
-#                 pose = aux_pose[ix, (ij*2):(ij*2 + 2)]
-#                 norm = np.linalg.norm( (pose) )
-#                 pose = pose / norm
-#                 c_poses[ix, ij] = np.arctan2( pose[1], pose[0] ) * 180 / np.pi
-# 
-#                 # Cast to 360 degree
-#                 if c_poses[ix, ij] < 0:
-#                     c_poses[ix, ij] = 360+c_poses[ix, ij] 
-        # Discrete poses
-        d_azimuth = np.zeros_like(scores)
-        d_elevation = np.zeros_like(scores)
-        d_theta = np.zeros_like(scores)
-        for ix in range(1, d_azimuth.shape[1]):
-            start = ix * num_bins  
-            end = start + num_bins
-            az_res = blobs_out['azimuth_prob']
-#             ele_res = blobs_out['elevation_prob']
-#             the_res = blobs_out['theta_prob']
-            bins_step = 360/num_bins
-            d_azimuth[:,ix] = az_res[:, start:end].argmax(axis=1) * bins_step 
-            d_elevation[:,ix] = ele_res[:, start:end].argmax(axis=1) * bins_step
-            d_theta[:,ix] = the_res[:, start:end].argmax(axis=1) * bins_step
+        # Continuous pose
+        azimuth_pose = blobs_out['azimuth_pred_objectnet']
+        elevation_pose = blobs_out['elevation_pred_objectnet']
+        theta_pose = blobs_out['theta_pred_objectnet']
+        n, nc = azimuth_pose.shape
+        # Normalize and convert to angles
+        d_azimuth = np.zeros( (n, nc/2) )
+        d_elevation = np.zeros( (n, nc/2) )
+        d_theta = np.zeros( (n, nc/2) )
+        for ix in range(n):
+            for ij in range(nc/2):
+                # Azimuth pose
+                pose = azimuth_pose[ix, (ij*2):(ij*2 + 2)]
+                norm = np.linalg.norm( (pose) )
+                pose = pose / norm
+                d_azimuth[ix, ij] = np.arctan2( pose[1], pose[0] ) * 180 / np.pi
+                # Cast to 360 degree
+                if d_azimuth[ix, ij] < 0:
+                    d_azimuth[ix, ij] = 360+d_azimuth[ix, ij] 
+                # Elevation pose
+                pose = elevation_pose[ix, (ij*2):(ij*2 + 2)]
+                norm = np.linalg.norm( (pose) )
+                pose = pose / norm
+                d_elevation[ix, ij] = np.arctan2( pose[1], pose[0] ) * 180 / np.pi
+                # Cast to 360 degree
+                if d_elevation[ix, ij] < 0:
+                    d_elevation[ix, ij] = 360+d_elevation[ix, ij] 
+                # Theta pose
+                pose = theta_pose[ix, (ij*2):(ij*2 + 2)]
+                norm = np.linalg.norm( (pose) )
+                pose = pose / norm
+                d_theta[ix, ij] = np.arctan2( pose[1], pose[0] ) * 180 / np.pi
+                # Cast to 360 degree
+                if d_theta[ix, ij] < 0:
+                    d_theta[ix, ij] = 360+d_theta[ix, ij] 
+                    
+                    
+#         # Discrete poses
+#         d_azimuth = np.zeros_like(scores)
+#         d_elevation = np.zeros_like(scores)
+#         d_theta = np.zeros_like(scores)
+#         for ix in range(1, d_azimuth.shape[1]):
+#             start = ix * num_bins  
+#             end = start + num_bins
+#             az_res = blobs_out['pose_pred_3Dplus']
+# #             ele_res = blobs_out['elevation_prob']
+# #             the_res = blobs_out['theta_prob']
+#             bins_step = 360/num_bins
+#             d_azimuth[:,ix] = az_res[:, start:end].argmax(axis=1) * bins_step 
+# #             d_elevation[:,ix] = ele_res[:, start:end].argmax(axis=1) * bins_step
+# #             d_theta[:,ix] = the_res[:, start:end].argmax(axis=1) * bins_step
 
     return scores, pred_boxes, d_azimuth, d_elevation, d_theta 
 
