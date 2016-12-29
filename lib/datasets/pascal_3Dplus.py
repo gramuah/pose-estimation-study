@@ -42,6 +42,7 @@ class pascal_3Dplus(datasets.imdb):
                        'top_k'    : 2000,
                        'use_diff' : False,
                        'eval_bins': 4,          # 4, 8, 16, 24
+                       'n_bins'   : 360,
                        'rpn_file' : None} 
 
         self._eval_az_interval = putls.generate_interval(self.config['eval_bins'])
@@ -416,9 +417,11 @@ class pascal_3Dplus(datasets.imdb):
                 for k in xrange(dets.shape[0]):
                     # the VOCdevkit expects 1-based indices
                     bb = dets[k, 0:4] + 1 # Bounding box in 1 index
-                    score = dets[k, -2]
-                    pose_ix = dets[k, -1]    # Pose angle
-                    azimuth = pose_ix * train_step 
+                    score = dets[k, 4]
+                    azimuth = dets[k, 5]       # Azimuth angle
+                    elevation = dets[k, 6]     # Elevation angle
+                    theta = dets[k, 7]         # Zenith angle
+                    azimuth = azimuth * train_step 
                     eval_bin = putls.find_interval(azimuth, self._eval_az_interval)+1
 
                     d = np.hstack( (bb, eval_bin, score) )

@@ -343,7 +343,10 @@ class ObjectNet3D(datasets.imdb):
                     azimuth = azimuth if azimuth <= 180 else azimuth - 360
                     elevation = elevation if elevation <= 180 else elevation - 360
                     theta = theta if theta <= 180 else theta - 360
-
+                    # Cast to radians
+                    azimuth = azimuth * np.pi / 180.0
+                    elevation = elevation * np.pi / 180.0
+                    theta = theta * np.pi / 180.0
                     # Save txt detections
                     f.write('{:s} {:.1f} {:.1f} {:.1f} {:.1f} {:.3f} {:.2f} {:.2f} {:.2f}\n'.
                                 format(index,dets[k, 0] + 1, dets[k, 1] + 1,

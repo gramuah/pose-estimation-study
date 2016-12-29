@@ -22,7 +22,7 @@ len=${#array[@]}
 EXTRA_ARGS=${array[@]:2:$len}
 EXTRA_ARGS_SLUG=${EXTRA_ARGS// /_}
 
-LOG="experiments/logs/ObjectNet3D_discrete.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
+LOG="experiments/logs/ObjectNet3D_continuous_2.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
@@ -32,7 +32,7 @@ NET_INIT=data/imagenet_models/${NET}.v2.caffemodel
 
 time ./tools/train_net.py \
 	--gpu ${GPU_ID} \
-	--solver models/VGG16/faster_rcnn_end2end/solver_objectnet.prototxt \
+	--solver models/VGG16/faster_rcnn_end2end/solver_objectnet_continuous.prototxt \
 	--weights ${NET_INIT} \
 	--imdb ${DATASET_TRAIN} \
 	--iters ${ITERS} \
@@ -43,7 +43,7 @@ NET_FINAL=`grep -B 1 "done solving" ${LOG} | grep "Wrote snapshot" | awk '{print
 set -x
 
 time ./tools/test_net.py --gpu ${GPU_ID} \
-  --def models/VGG16/faster_rcnn_end2end/test_objectnet.prototxt \
+  --def models/VGG16/faster_rcnn_end2end/test_objectnet_continuous.prototxt \
   --net ${NET_FINAL} \
   --imdb ${DATASET_TEST} \
   --cfg experiments/cfgs/faster_rcnn_end2end.yml \

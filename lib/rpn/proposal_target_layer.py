@@ -197,10 +197,10 @@ def _sample_rois(all_rois, gt_boxes, gt_azimuths, gt_elevations, gt_thetas,
     fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
     # Guard against the case when an image has fewer than fg_rois_per_image
     # foreground RoIs
-    fg_rois_per_this_image = int(min(fg_rois_per_image, fg_inds.size))
+    fg_rois_per_this_image = fg_rois_per_image #int(min(fg_rois_per_image, fg_inds.size))
     # Sample foreground regions without replacement
     if fg_inds.size > 0:
-        fg_inds = npr.choice(fg_inds, size=fg_rois_per_this_image, replace=False)
+        fg_inds = npr.choice(fg_inds, size=fg_rois_per_this_image, replace=True)
 
     # Select background RoIs as those within [BG_THRESH_LO, BG_THRESH_HI)
     bg_inds = np.where((max_overlaps < cfg.TRAIN.BG_THRESH_HI) &
