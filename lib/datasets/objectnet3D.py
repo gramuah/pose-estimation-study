@@ -38,7 +38,7 @@ class ObjectNet3D(datasets.imdb):
                        'use_salt' : True,
                        'top_k'    : 2000,
                        'use_diff' : False,
-                       'n_bins'   : 360,
+                       'n_bins'   : 24,
                        'rpn_file' : None} 
 
         self._train_az_interval = putls.generate_interval(self.config['n_bins'])
