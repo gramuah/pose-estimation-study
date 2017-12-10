@@ -421,7 +421,7 @@ class pascal_3Dplus(datasets.imdb):
                     azimuth = dets[k, 5]       # Azimuth angle
                     elevation = dets[k, 6]     # Elevation angle
                     theta = dets[k, 7]         # Zenith angle
-                    azimuth = azimuth * train_step 
+#                    azimuth = azimuth * train_step 
                     eval_bin = putls.find_interval(azimuth, self._eval_az_interval)+1
 
                     d = np.hstack( (bb, eval_bin, score) )

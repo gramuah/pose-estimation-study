@@ -24,20 +24,15 @@ class PoseLabelGenerator(caffe.Layer):
     def setup(self, bottom, top):
         """Setup the PoseLabelGenerator."""
         # parse the layer parameter string, which must be valid YAML
-        layer_params = yaml.load(self.param_str_)
+        layer_params = yaml.load(self.param_str)
         self._num_classes = layer_params['num_classes']
-        self._num_bins = layer_params['num_bins']
-        self._pose_interval = utls.generate_interval(self._num_bins)
-
-        # Pose labels for Azimuth
-        top[0].reshape(1, 1)      
-        # Pose labels for Elevation
-        top[1].reshape(1, 1)
-        # Pose labels for Theta
-        top[2].reshape(1, 1)
-        # Weights for pose
-        top[3].reshape(1, 1)
-         
+        self._num_bin = layer_params['num_bin']
+        # Pose azimuth labels
+        top[0].reshape(1, self._num_classes*self._num_bin)
+        top[1].reshape(1, self._num_classes*self._num_bin)
+        top[2].reshape(1, self._num_classes*self._num_bin)
+        top[3].reshape(1, self._num_classes*self._num_bin)
+        
     def forward(self, bottom, top):
         # Get foreground labels
         class_labels = bottom[0].data
@@ -45,44 +40,73 @@ class PoseLabelGenerator(caffe.Layer):
         fg_azimuths = bottom[1].data
         fg_elevations = bottom[2].data
         fg_thetas = bottom[3].data
-
-        # Get labels
-        azimuth_labels = np.zeros( (fg_azimuths.shape[0], 1), dtype=np.float32 )
-        elevation_labels = np.zeros( (fg_elevations.shape[0], 1), dtype=np.float32 )
-        theta_labels = np.zeros( (fg_thetas.shape[0], 1), dtype=np.float32 )
-        pose_weights = np.zeros( (fg_azimuths.shape[0], self._num_classes * self._num_bins), dtype=np.float32 ) 
-        # Split fg from bg        
-        bg_ix = np.where( class_labels == 0)[0]
-        fg_ix = np.where( class_labels > 0)[0]
-        # Prepare data
-        azimuth_labels[bg_ix] = -1.0
-        elevation_labels[bg_ix] = -1.0
-        theta_labels[bg_ix] = -1.0
-        for ix in fg_ix:
-            class_offset = int(self._num_bins*class_labels[ix])
-            azimuth_labels[ix] = float(utls.find_interval(fg_azimuths[ix], self._pose_interval) + class_offset)
-            pose_weights[ix, class_offset:class_offset + self._num_bins] = 1.0
-            elevation_labels[ix] = utls.find_interval(fg_elevations[ix], self._pose_interval) + class_offset
-            theta_labels[ix] = utls.find_interval(fg_thetas[ix], self._pose_interval) + class_offset
-        
-        # Forward labels
+        # Get pose and weights
+        azimuth_labels = self._get_pose_labels(fg_azimuths, class_labels)
+        elevation_labels = self._get_pose_labels(fg_elevations, class_labels)
+        theta_labels = self._get_pose_labels(fg_thetas, class_labels)
+        weights_vector = self._get_pose_weights(fg_azimuths, class_labels)
+        # Forward data
         top[0].reshape(*azimuth_labels.shape)
-        top[0].data[...] = azimuth_labels
+        top[0].data[...] = weights_vector
         top[1].reshape(*elevation_labels.shape)
-        top[1].data[...] = elevation_labels
+        top[1].data[...] = weights_vector
         top[2].reshape(*theta_labels.shape)
-        top[2].data[...] = theta_labels
-        top[3].reshape(*pose_weights.shape)
-        top[3].data[...] = pose_weights
+        top[2].data[...] = weights_vector
+        top[3].reshape(*weights_vector.shape)
+        top[3].data[...] = weights_vector
 
     def backward(self, top, propagate_down, bottom):
         """This layer does not propagate gradients."""
         pass
 
     def reshape(self, bottom, top):
-        """Reshaping happens during the call to forward."""
+        """Reshaping hapose_weightsppens during the call to forward."""
         pass
+    
+    def _get_pose_labels(self, azimuth, labels):
+        """
+        This function expands the azimuth targets into the N*2*K representation used
+        by the network (i.e. only one class has non-zero targets).
+        
+        The angles are decomposed into cos and sin.
+    
+        Returns:
+            pose_target (ndarray): N x 2K blob of regression targets
+            pose_labels (ndarray): N x 2K blob of loss weights
+        """
+    
+        pose_labels = np.zeros_like(azimuth)
+        inds = np.where(labels > 0)[0]
+        for ind in inds:
+            cls = labels[ind].astype(np.int32)
+            start = self._num_bin * cls
+            # Get mask
+            az = azimuth[ind]
+            print az
+            pose_labels[ind, start:end] = az
+        return pose_labels
 
+    def _get_pose_weights(self, azimuth, labels):
+        """
+        This function expands the azimuth targets into the N*2*K representation used
+        by the network (i.e. only one class has non-zero targets).
+        
+        The angles are decomposed into cos and sin.
+    
+        Returns:
+            pose_target (ndarray): N x 2K blob of regression targets
+            pose_inside_weights (ndarray): N x 2K blob of loss weights
+        """
+    
+        pose_inside_weights = np.zeros((azimuth.shape[0], self._num_classes*self._num_bin), dtype=np.float32)
+        inds = np.where(labels > 0)[0]
+        for ind in inds:
+            cls = labels[ind].astype(np.int32)
+            start = self._num_bin * cls
+            end = start + self._num_bin
+            # Get mask
+            pose_inside_weights[ind, start:end] = 1.0
+        return pose_inside_weights
 
 class ContinuousPoseLabelGenerator(caffe.Layer):
     """
@@ -91,7 +115,7 @@ class ContinuousPoseLabelGenerator(caffe.Layer):
     def setup(self, bottom, top):
         """Setup the PoseLabelGenerator."""
         # parse the layer parameter string, which must be valid YAML
-        layer_params = yaml.load(self.param_str_)
+        layer_params = yaml.load(self.param_str)
         self._num_classes = layer_params['num_classes']
         # Pose azimuth labels
         top[0].reshape(1, self._num_classes*2)
@@ -128,7 +152,7 @@ class ContinuousPoseLabelGenerator(caffe.Layer):
         pass
 
     def reshape(self, bottom, top):
-        """Reshaping happens during the call to forward."""
+        """Reshaping hapose_weightsppens during the call to forward."""
         pass
     
     def _get_pose_regression_labels(self, azimuth, labels, num_classes):

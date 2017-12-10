@@ -33,7 +33,7 @@ class ProposalTargetLayer(caffe.Layer):
             self._fg_num = 0
             self._bg_num = 0
 
-        layer_params = yaml.load(self.param_str_)
+        layer_params = yaml.load(self.param_str)
         self._num_classes = layer_params['num_classes']
 
         # sampled rois (0, x1, y1, x2, y2)
@@ -47,11 +47,11 @@ class ProposalTargetLayer(caffe.Layer):
         # bbox_outside_weights
         top[4].reshape(1, self._num_classes * 4)
         # azimuth pose
-        top[5].reshape(1, 24)
+        top[5].reshape(1)
         # elevation pose
-        top[6].reshape(1, 24)
+        top[6].reshape(1)
         # theta pose
-        top[7].reshape(1, 24)
+        top[7].reshape(1)
 
     def forward(self, bottom, top):
         # Proposal ROIs (0, x1, y1, x2, y2) coming from RPN
@@ -194,10 +194,11 @@ def _sample_rois(all_rois, gt_boxes, gt_azimuths, gt_elevations, gt_thetas,
     theta = gt_thetas[gt_assignment]
 
     # Select foreground RoIs as those with >= FG_THRESH overlap
-    fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0]
+    fg_inds = np.where(max_overlaps >= cfg.TRAIN.FG_THRESH)[0].astype(np.int32)
     # Guard against the case when an image has fewer than fg_rois_per_image
     # foreground RoIs
     fg_rois_per_this_image = fg_rois_per_image #int(min(fg_rois_per_image, fg_inds.size))
+    fg_rois_per_this_image = fg_rois_per_this_image.astype(np.int32)
     # Sample foreground regions without replacement
     if fg_inds.size > 0:
         fg_inds = npr.choice(fg_inds, size=fg_rois_per_this_image, replace=True)

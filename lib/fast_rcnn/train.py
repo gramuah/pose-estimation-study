@@ -16,6 +16,7 @@ import os
 
 from caffe.proto import caffe_pb2
 import google.protobuf as pb2
+from google.protobuf import text_format
 
 class SolverWrapper(object):
     """A simple wrapper around Caffe's solver.
@@ -40,23 +41,26 @@ class SolverWrapper(object):
                     rdl_roidb.add_bbox_regression_targets(roidb)
             print 'done'
 
-        self.solver = caffe.SGDSolver(solver_prototxt)
+        self.solver = caffe.AdamSolver(solver_prototxt)
+#        self.solver = caffe.SGDSolver(solver_prototxt)
         if pretrained_model is not None:
             print ('Loading pretrained model '
                    'weights from {:s}').format(pretrained_model)
             self.solver.net.copy_from(pretrained_model)
             
-#             # Clone to pose net
-#             vgg_layers = ['conv1_1', 'conv1_2', 'conv2_1', 'conv2_2', 'conv3_1',\
+            # Clone to pose net
+#            vgg_layers = ['conv1_1', 'conv1_2', 'conv2_1', 'conv2_2', 'conv3_1',\
 #                           'conv3_2', 'conv3_3', 'conv4_1', 'conv4_2', 'conv4_3',\
 #                           'conv5_1', 'conv5_2', 'conv5_3', 'fc6', 'fc7']
-#             for layer_name in vgg_layers:
-#                 self.solver.net.params[layer_name + '_pose'][0].data[...] = self.solver.net.params[layer_name][0].data[...] # Data
-#                 self.solver.net.params[layer_name + '_pose'][1].data[...] = self.solver.net.params[layer_name][1].data[...] # Bias
+##            vgg_layers = ['fc6', 'fc7']
+
+#            for layer_name in vgg_layers:
+#                self.solver.net.params[layer_name + '_pose'][0].data[...] = self.solver.net.params[layer_name][0].data[...]  # Data
+#                self.solver.net.params[layer_name + '_pose'][1].data[...] = self.solver.net.params[layer_name][1].data[...]  # Bias
             
         self.solver_param = caffe_pb2.SolverParameter()
         with open(solver_prototxt, 'rt') as f:
-            pb2.text_format.Merge(f.read(), self.solver_param)
+            text_format.Merge(f.read(), self.solver_param)
 
         self.solver.net.layers[0].set_roidb(roidb)
 

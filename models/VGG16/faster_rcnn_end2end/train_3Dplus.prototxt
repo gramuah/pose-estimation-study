@@ -6,6 +6,8 @@ layer {
   top: 'im_info'
   top: 'gt_boxes'
   top: 'gt_azimuths'
+  top: 'gt_elevations'
+  top: 'gt_thetas'
   python_param {
     module: 'roi_data_layer.layer'
     layer: 'RoIDataLayer'
@@ -521,14 +523,16 @@ layer {
   bottom: 'rpn_rois'
   bottom: 'gt_boxes'
   bottom: 'gt_azimuths'
+  bottom: 'gt_elevations'
+  bottom: 'gt_thetas'
   top: 'rois'
   top: 'labels'
   top: 'bbox_targets'
   top: 'bbox_inside_weights'
   top: 'bbox_outside_weights'
-  top: 'sample_azimuths'
-  top: 'pose_inside_weights'
-  top: 'pose_outside_weights'
+  top: 'pose_azimuth'
+  top: 'pose_elevation'
+  top: 'pose_theta'
   python_param {
     module: 'rpn.proposal_target_layer'
     layer: 'ProposalTargetLayer'
@@ -537,7 +541,6 @@ layer {
 }
 
 #========= RCNN ============
-
 layer {
   name: "roi_pool5"
   type: "ROIPooling"
@@ -656,31 +659,6 @@ layer {
     }
   }
 }
-
-layer {
-  name: "pose_pred_3Dplus"
-  type: "InnerProduct"
-  bottom: "fc7"
-  top: "pose_pred_3Dplus"
-  param {
-    lr_mult: 0.01
-  }
-  param {
-    lr_mult: 0.02
-  }
-  inner_product_param {
-    num_output: 26
-    weight_filler {
-      type: "gaussian"
-      std: 0.001
-    }
-    bias_filler {
-      type: "constant"
-      value: 0
-    }
-  }
-}
-
 layer {
   name: "loss_cls"
   type: "SoftmaxWithLoss"
@@ -702,28 +680,62 @@ layer {
   loss_weight: 1
 }
 
+
 layer {
-  name: "loss_pose"
-  type: "SmoothL1Loss"
-  bottom: "pose_pred_3Dplus"
-  bottom: "sample_azimuths"
-  bottom: "pose_inside_weights"
-  bottom: "pose_outside_weights"
-  top: "loss_pose"
-  loss_weight: 1
+  name: 'pose-label-generator'
+  type: 'Python'
+  bottom: 'labels'
+  bottom: 'pose_azimuth'
+  bottom: 'pose_elevation'
+  bottom: 'pose_theta'
+  top: "discrete_azimuth_label"
+  top: "azimuth_weights"
+#  top: "discrete_elevation_label"
+#  top: "discrete_theta_label"
+  python_param {
+    module: 'rpn.pose_label_generator'
+    layer: 'PoseLabelGenerator'
+    param_str: "{'num_classes': 13, 'num_bins': 360}"
+  }
 }
 
-# layer {
-#   name: "loss_pose"
-#   type: "Python"
-#   bottom: "pose_pred_3Dplus"
-#   bottom: "sample_azimuths"  # Pose label
-#   bottom: "labels"  	     # Class label
-#   top: "loss_pose"
-#     python_param {
-#     module: "pose_loss_layer.layer"
-#    layer: "PoseLossLayer"
-#     layer: "PoseLossLayer"
-#   }
-#   loss_weight: 1
-# }
+layer {
+  name: "pose_pred_3Dplus"
+  type: "InnerProduct"
+  bottom: "fc7"
+  top: "pose_pred_3Dplus"
+  param {
+    lr_mult: 1
+  }
+  param {
+    lr_mult: 1
+  }
+  inner_product_param {
+    num_output: 4680
+    weight_filler {
+      type: "gaussian"
+      std: 0.001
+    }
+    bias_filler {
+      type: "constant"
+      value: 0
+    }
+  }
+}
+layer {
+  name: "loss_pose"
+  type: "SoftmaxWithLoss"
+  bottom: "pose_pred_3Dplus"
+  bottom: "discrete_azimuth_label"  # Pose label
+  bottom: "azimuth_weights"  # Azimuth weights
+  propagate_down: 1
+  propagate_down: 0
+  propagate_down: 0
+  top: "loss_pose"
+  
+  loss_param {
+    ignore_label: -1
+    normalize: false
+  }
+  loss_weight: 1.0
+}

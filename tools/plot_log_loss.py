@@ -24,12 +24,14 @@ if __name__ == '__main__':
     it_v = []
     with open(log_file,'r') as f:
         for line in f:
+            s = line.split(' ')
             if key in line:
-                s = line.split(' ')
-                loss_v.append( float(s[-1]) )
-                it_v.append( int( s[-4][:-1]) ) 
+#                print s[-1]
+		loss_v.append( float(s[-1]) )
+            if 'solver.cpp:218' in line:
+#		print s[5]
+                it_v.append( int( s[6]) ) 
             if key2 in line:
-            	s = line.split(' ')
                 loss2_v.append( float(s[-2]) )
 
     # Median filter
