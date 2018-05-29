@@ -67,7 +67,7 @@ This is the original implmenentatio of the paper calld *The challenge of simulta
 Pre-trained model can be fetch by running the script:
 
 ```Shell
-cd $FRCN_ROOT
+cd $PROJECT_ROOT
 ./data/scripts/fetch_models.sh
 ```
 
@@ -76,7 +76,7 @@ cd $FRCN_ROOT
 To train and test a detector use the corresponding script: 
 
 ```Shell
-cd $FRCN_ROOT
+cd $PROJECT_ROOT
 ./experiments/scripts/faster_rcnn_alt_opt.sh [GPU_ID] [NET] [--set ...]
 # GPU_ID is the GPU you want to train on
 # NET in {ZF, VGG_CNN_M_1024, VGG16} is the network arch to use
@@ -84,7 +84,7 @@ cd $FRCN_ROOT
 #   --set EXP_DIR seed_rng1701 RNG_SEED 1701
 ```
 
-Output is written underneath `$FRCN_ROOT/output`.
+Output is written underneath `$PROJECT_ROOT/output`.
 
 
 ("alt opt" refers to the alternating optimization training algorithm described in the NIPS paper.)
