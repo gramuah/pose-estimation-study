@@ -77,11 +77,10 @@ To train and test a detector use the corresponding script:
 
 ```Shell
 cd $PROJECT_ROOT
-./experiments/scripts/faster_rcnn_alt_opt.sh [GPU_ID] [NET] [--set ...]
+./experiments/scripts/faster_rcnn_alt_opt.sh [GPU_ID] [--set ...]
 # GPU_ID is the GPU you want to train on
-# NET in {ZF, VGG_CNN_M_1024, VGG16} is the network arch to use
 # --set ... allows you to specify fast_rcnn.config options, e.g.
-#   --set EXP_DIR seed_rng1701 RNG_SEED 1701
+# --set EXP_DIR seed_rng1701 RNG_SEED 1701
 ```
 
 Output is written underneath `$PROJECT_ROOT/output`.

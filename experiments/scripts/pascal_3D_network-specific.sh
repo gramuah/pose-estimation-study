@@ -27,7 +27,6 @@ exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
 NET_INIT=data/pascal_models/${NET}/train/vgg16_faster_rcnn_iter_70000.caffemodel
-#NET_INIT=data/pascal_models/${NET}/trainval/vgg16_faster_rcnn_iter_70000.caffemodel
 #NET_INIT=data/imagenet_models/${NET}.v2.caffemodel
 
 time ./tools/train_net.py \
