@@ -220,21 +220,21 @@ def im_detect(net, im, db_naming, continuous, boxes=None, num_bins = 360):
                     # Cast to 360 degree
                     if d_theta[ix, ij] < 0:
                         d_theta[ix, ij] = 360+d_theta[ix, ij]
-        else:
-            # Discrete poses
-            d_azimuth = np.zeros_like(scores)
-            d_elevation = np.zeros_like(scores)
-            d_theta = np.zeros_like(scores)
-            for ix in range(1, d_azimuth.shape[1]):
-                start = ix * num_bins
-                end = start + num_bins
-                az_res = blobs_out['azimuth_prob']
-                ele_res = blobs_out['elevation_prob']
-                the_res = blobs_out['theta_prob']
-                bins_step = 360/num_bins
-                d_azimuth[:,ix] = az_res[:, start:end].argmax(axis=1) * bins_step
-                d_elevation[:,ix] = ele_res[:, start:end].argmax(axis=1) * bins_step
-                d_theta[:,ix] = the_res[:, start:end].argmax(axis=1) * bins_step
+            else:
+                # Discrete poses
+                d_azimuth = np.zeros_like(scores)
+                d_elevation = np.zeros_like(scores)
+                d_theta = np.zeros_like(scores)
+                for ix in range(1, d_azimuth.shape[1]):
+                    start = ix * num_bins
+                    end = start + num_bins
+                    az_res = blobs_out['azimuth_prob']
+                    ele_res = blobs_out['elevation_prob']
+                    the_res = blobs_out['theta_prob']
+                    bins_step = 360/num_bins
+                    d_azimuth[:,ix] = az_res[:, start:end].argmax(axis=1) * bins_step
+                    d_elevation[:,ix] = ele_res[:, start:end].argmax(axis=1) * bins_step
+                    d_theta[:,ix] = the_res[:, start:end].argmax(axis=1) * bins_step
     return scores, pred_boxes, d_azimuth, d_elevation, d_theta
 
 def vis_detections(im, class_name, dets, im_ix, thresh=0.8):
