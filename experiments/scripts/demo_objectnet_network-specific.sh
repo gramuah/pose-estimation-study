@@ -11,9 +11,7 @@ set -e
 export PYTHONUNBUFFERED="True"
 
 GPU_ID=$1
-ITERS=200000
-DATASET_TRAIN=ObjectNet3D_train
-DATASET_TEST=ObjectNet3D_val
+DATASET_TEST=ObjectNet3D_test
 
 array=( $@ )
 len=${#array[@]}
@@ -24,19 +22,7 @@ LOG="experiments/logs/OBJECTNET_NETWORK_SPECIFIC_(train-val).txt.`date +'%Y-%m-%
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
-NET_INIT='data/imagenet_models/VGG16.v2.caffemodel'
-
-time ./tools/train_net.py \
-	--gpu ${GPU_ID} \
-	--solver models/VGG16/faster_rcnn_end2end/solver_objectnet_network-specific.prototxt \
-	--weights ${NET_INIT} \
-	--imdb ${DATASET_TRAIN} \
-	--iters ${ITERS} \
-	--cfg experiments/cfgs/faster_rcnn_end2end.yml
-
-set +x
-NET_FINAL=`grep -B 1 "done solving" ${LOG} | grep "Wrote snapshot" | awk '{print $4}'`
-set -x
+NET_FINAL='data/demo_models/SPECIFIC-NETWORK_OBJECTNET.caffemodel'
 
 time ./tools/test_net.py --gpu ${GPU_ID} \
   --def models/VGG16/faster_rcnn_end2end/test_objectnet_network-specific.prototxt \

@@ -28,6 +28,7 @@ If you make use of this data and software, please cite the following reference i
 3. [Installation](#installation)
 4. [Pre-trained models](#download-pre-trained-models)
 5. [Usage](#usage)
+6. [Demo: test](#demo-test)
 
 ## Requirements: software
 
@@ -98,24 +99,14 @@ To train and test our simultaneous object detection and pose estimation models u
 
 ```Shell
 cd $PROJECT_ROOT
-./experiments/scripts/faster_rcnn_alt_opt.sh [GPU_ID] [--set ...]
-# GPU_ID is the GPU you want to train on
-# --set ... allows you to specify fast_rcnn.config options, e.g.
-# --set EXP_DIR seed_rng1701 RNG_SEED 1701
-```
-
-Output is written underneath `$PROJECT_ROOT/output`.
-
-
-```Shell
-cd $PROJECT_ROOT
 ./experiments/scripts/objectnet_single-path.sh [GPU_ID]
+# GPU_ID is the GPU you want to train on
 ```
 
 Output is written underneath `$PROJECT_ROOT/output`.
 
 
-Trained Fast R-CNN networks are saved under:
+Trained models are saved under:
 
 ```
 output/<experiment directory>/<dataset name>/
@@ -125,4 +116,24 @@ Test outputs are saved under:
 
 ```
 output/<experiment directory>/<dataset name>/<network snapshot name>/
+```
+
+## Demo: test
+
+We provide the pretrained models of our SPECIFIC-NETWORK model, hence it is possible to run the test.
+
+To run the test on the Pascal3DPlus just execute: 
+
+```Shell
+cd $PROJECT_ROOT
+./experiments/scripts/demo_pascal_3D_network-specific [GPU_ID]
+# GPU_ID is the GPU you want to train on
+```
+
+Or to run it for the ObjectNet3D, execute: 
+
+```Shell
+cd $PROJECT_ROOT
+./experiments/scripts/demo_objectnet_network-specific.sh [GPU_ID]
+# GPU_ID is the GPU you want to train on
 ```

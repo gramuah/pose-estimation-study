@@ -11,8 +11,6 @@ set -e
 export PYTHONUNBUFFERED="True"
 
 GPU_ID=$1
-ITERS=150000
-DATASET_TRAIN=3Dplus_trainval
 DATASET_TEST=3Dplus_test
 
 array=( $@ )
@@ -25,18 +23,6 @@ exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
 NET_INIT=data/pascal_models/${NET}/train/vgg16_faster_rcnn_iter_70000.caffemodel
-
-time ./tools/train_net.py \
-	--gpu ${GPU_ID} \
-	--solver models/VGG16/faster_rcnn_end2end/solver_3Dplus_network-specific \
-	--weights ${NET_INIT} \
-	--imdb ${DATASET_TRAIN} \
-	--iters ${ITERS} \
-	--cfg experiments/cfgs/faster_rcnn_end2end.yml
-
-set +x
-NET_FINAL=`grep -B 1 "done solving" ${LOG} | grep "Wrote snapshot" | awk '{print $4}'`
-set -x
 
 time ./tools/test_net.py --gpu ${GPU_ID} \
   --def models/VGG16/faster_rcnn_end2end/test_3Dplus_network-specific.prototxt \
