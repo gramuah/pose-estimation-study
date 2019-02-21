@@ -110,6 +110,12 @@ if __name__ == '__main__':
     # Filter out images without rois
     roidb = [ roi for roi in roidb if len(roi['gt_classes'])!=0 ]
 
+    if 'ObjectNet3D' in args.imdb_name:
+        db_naming = 'objectnet'
+    else:
+        db_naming = '3Dplus'
+
     train_net(args.solver, roidb, output_dir,
               pretrained_model=args.pretrained_model,
-              max_iters=args.max_iters)
+              max_iters=args.max_iters,
+              db_naming = db_naming)

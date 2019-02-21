@@ -36,6 +36,9 @@ def parse_args():
     parser.add_argument('--wait', dest='wait',
                         help='wait until net file exists',
                         default=True, type=bool)
+    parser.add_argument('--continuous', dest='continuous',
+                        help='wait until net file exists',
+                        default=True, type=bool)
     parser.add_argument('--imdb', dest='imdb_name',
                         help='dataset to test',
                         default='voc_2007_test', type=str)
@@ -66,6 +69,11 @@ if __name__ == '__main__':
     if args.set_cfgs is not None:
         cfg_from_list(args.set_cfgs)
 
+    if 'ObjectNet3D' in args.imdb_name:
+        db_naming = 'objectnet'
+    else:
+        db_naming = '3Dplus'
+
     cfg.GPU_ID = args.gpu_id
 
     print('Using config:')
@@ -89,4 +97,4 @@ if __name__ == '__main__':
     if not cfg.TEST.HAS_RPN:
         imdb.set_proposal_method(cfg.TEST.PROPOSAL_METHOD)
 
-    test_net(net, imdb)
+    test_net(net, imdb, db_naming, args.continuous)

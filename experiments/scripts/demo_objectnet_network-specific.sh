@@ -29,4 +29,5 @@ time ./tools/test_net.py --gpu ${GPU_ID} \
   --net ${NET_FINAL} \
   --imdb ${DATASET_TEST} \
   --cfg experiments/cfgs/faster_rcnn_end2end.yml \
+  --continuous \
   ${EXTRA_ARGS}
