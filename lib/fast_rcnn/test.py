@@ -237,6 +237,94 @@ def im_detect(net, im, db_naming, continuous, boxes=None, num_bins = 360):
                 d_theta[:,ix] = the_res[:, start:end].argmax(axis=1) * bins_step
     return scores, pred_boxes, d_azimuth, d_elevation, d_theta
 
+def im_detect_3DPlus(net, im, boxes=None, num_bins = 360):
+    """Detect object classes in an image given object proposals.
+
+    Arguments:
+        net (caffe.Net): Fast R-CNN network to use
+        im (ndarray): color image to test (in BGR order)
+        boxes (ndarray): R x 4 array of object proposals or None (for RPN)
+
+    Returns:
+        scores (ndarray): R x K array of object class scores (K includes
+            background as object category 0)
+        boxes (ndarray): R x (4*K) array of predicted bounding boxes
+        pose (ndarray): R x (K) array of predicted azimuth in degrees
+    """
+    blobs, im_scales = _get_blobs(im, boxes)
+
+    # When mapping from image ROIs to feature map ROIs, there's some aliasing
+    # (some distinct image ROIs get mapped to the same feature ROI).
+    # Here, we identify duplicate feature ROIs, so we only compute features
+    # on the unique subset.
+    if cfg.DEDUP_BOXES > 0 and not cfg.TEST.HAS_RPN:
+        v = np.array([1, 1e3, 1e6, 1e9, 1e12])
+        hashes = np.round(blobs['rois'] * cfg.DEDUP_BOXES).dot(v)
+        _, index, inv_index = np.unique(hashes, return_index=True,
+                                        return_inverse=True)
+        blobs['rois'] = blobs['rois'][index, :]
+        boxes = boxes[index, :]
+
+    if cfg.TEST.HAS_RPN:
+        im_blob = blobs['data']
+        blobs['im_info'] = np.array(
+            [[im_blob.shape[2], im_blob.shape[3], im_scales[0]]],
+            dtype=np.float32)
+
+    # reshape network inputs
+    net.blobs['data'].reshape(*(blobs['data'].shape))
+    if cfg.TEST.HAS_RPN:
+        net.blobs['im_info'].reshape(*(blobs['im_info'].shape))
+    else:
+        net.blobs['rois'].reshape(*(blobs['rois'].shape))
+
+    # do forward
+    forward_kwargs = {'data': blobs['data'].astype(np.float32, copy=False)}
+    if cfg.TEST.HAS_RPN:
+        forward_kwargs['im_info'] = blobs['im_info'].astype(np.float32, copy=False)
+    else:
+        forward_kwargs['rois'] = blobs['rois'].astype(np.float32, copy=False)
+    blobs_out = net.forward(**forward_kwargs)
+
+    if cfg.TEST.HAS_RPN:
+        assert len(im_scales) == 1, "Only single-image batch implemented"
+        rois = net.blobs['rois'].data.copy()
+        # unscale back to raw image space
+        boxes = rois[:, 1:5] / im_scales[0]
+
+    if cfg.TEST.SVM:
+        # use the raw scores before softmax under the assumption they
+        # were trained as linear SVMs
+        scores = net.blobs['cls_score'].data
+    else:
+        # use softmax estimated probabilities
+        scores = blobs_out['cls_prob']
+
+    if cfg.TEST.BBOX_REG:
+        # Apply bounding-box regression deltas
+        box_deltas = blobs_out['bbox_pred_3Dplus']
+        pred_boxes = bbox_transform_inv(boxes, box_deltas)
+        pred_boxes = clip_boxes(pred_boxes, im.shape)
+    else:
+        # Simply repeat the boxes, once for each class
+        pred_boxes = np.tile(boxes, (1, scores.shape[1]))
+
+    if cfg.DEDUP_BOXES > 0 and not cfg.TEST.HAS_RPN:
+        # Map scores and predictions back to the original set of boxes
+        scores = scores[inv_index, :]
+        pred_boxes = pred_boxes[inv_index, :]
+
+    if cfg.TEST.HAS_POSE:
+        # Discrete poses
+        d_azimuth = np.zeros_like(scores)
+        for ix in range(1, d_azimuth.shape[1]):
+            start = ix * num_bins
+            end = start + num_bins
+            az_res = blobs_out['pose_pred_3Dplus']
+            bins_step = 360/num_bins
+            d_azimuth[:,ix] = az_res[:, start:end].argmax(axis=1) * bins_step
+    return scores, pred_boxes, d_azimuth
+
 def vis_detections(im, class_name, dets, im_ix, thresh=0.8):
     """Visual debugging of detections."""
     import matplotlib.pyplot as plt
@@ -247,6 +335,32 @@ def vis_detections(im, class_name, dets, im_ix, thresh=0.8):
         azimuth = dets[i, 5]
         elevation = dets[i, 6]
         theta = dets[i, 7]
+        if score > thresh:
+            plt.cla()
+            plt.imshow(im)
+            plt.gca().add_patch(
+                plt.Rectangle((bbox[0], bbox[1]),
+                              bbox[2] - bbox[0],
+                              bbox[3] - bbox[1], fill=False,
+                              edgecolor='g', linewidth=3)
+                )
+            r_pose = (azimuth+90) * np.pi / 180.0
+            arrow_centre = [bbox[0] + (bbox[2] - bbox[0])/2, bbox[1] + (bbox[3] - bbox[1])/2]
+            arrow_peack = [arrow_centre[0]*np.cos(r_pose), arrow_centre[1]*np.sin(r_pose)]/(arrow_centre[0]+arrow_centre[1])*np.max(arrow_centre)
+            plt.arrow(arrow_centre[0], arrow_centre[1], arrow_peack[0], arrow_peack[1], head_width=10.0, head_length=10, fc='r', ec='r')
+            
+            plt.title('{}  {:.3f} {:.2f} deg'.format(class_name, score, azimuth))
+            plt.show()
+#            plt.savefig("det.pdf")
+
+def vis_detections_3DPlus(im, class_name, dets, im_ix, thresh=0.8):
+    """Visual debugging of detections."""
+    import matplotlib.pyplot as plt
+    im = im[:, :, (2, 1, 0)]
+    for i in xrange(np.minimum(10, dets.shape[0])):
+        bbox = dets[i, :4]
+        score = dets[i, 4]
+        azimuth = dets[i, 5]
         if score > thresh:
             plt.cla()
             plt.imshow(im)
@@ -321,47 +435,89 @@ def test_net(net, imdb, db_naming, continuous):
         else:
             box_proposals = roidb[i]['boxes'][roidb[i]['gt_classes'] == 0]
         im = cv2.imread(imdb.image_path_at(i))
-        _t['im_detect'].tic()
-        scores, boxes, azimuths, elevations, thetas  = im_detect(net, im, db_naming, continuous, box_proposals,
+                
+        if db_naming == 'objectnet':
+            _t['im_detect'].tic()
+            scores, boxes, azimuths, elevations, thetas  = im_detect(net, im, db_naming, continuous, box_proposals,
                                                                  imdb.config['n_bins'])
-        _t['im_detect'].toc()
+            _t['im_detect'].toc()
 
-        _t['misc'].tic()
-        for j in xrange(1, imdb.num_classes):
-            inds = np.where(scores[:, j] > thresh[j])[0]
-            cls_scores = scores[inds, j]
-            cls_boxes = boxes[inds, j*4:(j+1)*4]
-            top_inds = np.argsort(-cls_scores)[:max_per_image]
-            cls_scores = cls_scores[top_inds]
-            cls_boxes = cls_boxes[top_inds, :]
-            cls_azimuth = azimuths[top_inds, j]
-            cls_elevation = elevations[top_inds, j]
-            cls_theta = thetas[top_inds, j]
-            # push new scores onto the minheap
-            for val in cls_scores:
-                heapq.heappush(top_scores[j], val)
-            # if we've collected more than the max number of detection,
-            # then pop items off the minheap and update the class threshold
-            if len(top_scores[j]) > max_per_set:
-                while len(top_scores[j]) > max_per_set:
-                    heapq.heappop(top_scores[j])
-                thresh[j] = top_scores[j][0]
+            _t['misc'].tic()
+            for j in xrange(1, imdb.num_classes):
+                inds = np.where(scores[:, j] > thresh[j])[0]
+                cls_scores = scores[inds, j]
+                cls_boxes = boxes[inds, j*4:(j+1)*4]
+                top_inds = np.argsort(-cls_scores)[:max_per_image]
+                cls_scores = cls_scores[top_inds]
+                cls_boxes = cls_boxes[top_inds, :]
+                cls_azimuth = azimuths[top_inds, j]
+                cls_elevation = elevations[top_inds, j]
+                cls_theta = thetas[top_inds, j]
+                # push new scores onto the minheap
+                for val in cls_scores:
+                    heapq.heappush(top_scores[j], val)
+                # if we've collected more than the max number of detection,
+                # then pop items off the minheap and update the class threshold
+                if len(top_scores[j]) > max_per_set:
+                    while len(top_scores[j]) > max_per_set:
+                        heapq.heappop(top_scores[j])
+                    thresh[j] = top_scores[j][0]
 
-            all_boxes[j][i] = \
-                    np.hstack((cls_boxes, cls_scores[:, np.newaxis], \
-                               cls_azimuth[:, np.newaxis], \
-                               cls_elevation[:, np.newaxis], \
-                               cls_theta[:, np.newaxis])) \
-                    .astype(np.float32, copy=False)
+                all_boxes[j][i] = \
+                        np.hstack((cls_boxes, cls_scores[:, np.newaxis], \
+                                   cls_azimuth[:, np.newaxis], \
+                                   cls_elevation[:, np.newaxis], \
+                                   cls_theta[:, np.newaxis])) \
+                        .astype(np.float32, copy=False)
 
-            if 0:
-                keep = nms(all_boxes[j][i][:,0:5], 0.3)
-                vis_detections(im, imdb.classes[j], all_boxes[j][i][keep], i)
-        _t['misc'].toc()
+                if 0:
+                    keep = nms(all_boxes[j][i][:,0:5], 0.3)
+                    vis_detections(im, imdb.classes[j], all_boxes[j][i][keep], i)
+            _t['misc'].toc()
 
-        print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
-              .format(i + 1, num_images, _t['im_detect'].average_time,
-                      _t['misc'].average_time)
+            print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
+                  .format(i + 1, num_images, _t['im_detect'].average_time,
+                          _t['misc'].average_time)
+        else:
+            _t['im_detect'].tic()
+            scores, boxes, azimuths  = im_detect_3DPlus(net, im, box_proposals,
+                                                                 imdb.config['n_bins'])
+            _t['im_detect'].toc()
+
+            _t['misc'].tic()
+            for j in xrange(1, imdb.num_classes):
+                inds = np.where(scores[:, j] > thresh[j])[0]
+                cls_scores = scores[inds, j]
+                cls_boxes = boxes[inds, j*4:(j+1)*4]
+                top_inds = np.argsort(-cls_scores)[:max_per_image]
+                cls_scores = cls_scores[top_inds]
+                cls_boxes = cls_boxes[top_inds, :]
+                cls_azimuth = azimuths[top_inds, j]
+                # push new scores onto the minheap
+                for val in cls_scores:
+                    heapq.heappush(top_scores[j], val)
+                # if we've collected more than the max number of detection,
+                # then pop items off the minheap and update the class threshold
+                if len(top_scores[j]) > max_per_set:
+                    while len(top_scores[j]) > max_per_set:
+                        heapq.heappop(top_scores[j])
+                    thresh[j] = top_scores[j][0]
+
+                all_boxes[j][i] = \
+                        np.hstack((cls_boxes, cls_scores[:, np.newaxis], \
+                                   cls_azimuth[:, np.newaxis])) \
+                        .astype(np.float32, copy=False)
+                if 0:
+                    keep = nms(all_boxes[j][i][:,0:5], 0.3)
+                    if db_naming == 'objectnet':
+                        vis_detections(im, imdb.classes[j], all_boxes[j][i][keep], i)
+                    else:
+                        vis_detections_3DPlus(im, imdb.classes[j], all_boxes[j][i][keep], i)
+            _t['misc'].toc()
+
+            print 'im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
+                  .format(i + 1, num_images, _t['im_detect'].average_time,
+                          _t['misc'].average_time)
 
     for j in xrange(1, imdb.num_classes):
         for i in xrange(num_images):
