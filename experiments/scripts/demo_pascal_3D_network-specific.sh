@@ -18,11 +18,11 @@ len=${#array[@]}
 EXTRA_ARGS=${array[@]:2:$len}
 EXTRA_ARGS_SLUG=${EXTRA_ARGS// /_}
 
-LOG="experiments/logs/FC7_REDO.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
+LOG="experiments/logs/3DPLUS_NETWORK_SPECIFIC.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
-NET_INIT=data/pascal_models/${NET}/train/vgg16_faster_rcnn_iter_70000.caffemodel
+NET_FINAL='data/demo_models/SPECIFIC-NETWORK_3DPLUS.caffemodel'
 
 time ./tools/test_net.py --gpu ${GPU_ID} \
   --def models/VGG16/faster_rcnn_end2end/test_3Dplus_network-specific.prototxt \

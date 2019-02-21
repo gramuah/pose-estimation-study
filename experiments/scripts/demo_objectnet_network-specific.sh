@@ -18,7 +18,7 @@ len=${#array[@]}
 EXTRA_ARGS=${array[@]:2:$len}
 EXTRA_ARGS_SLUG=${EXTRA_ARGS// /_}
 
-LOG="experiments/logs/OBJECTNET_NETWORK_SPECIFIC_(train-val).txt.`date +'%Y-%m-%d_%H-%M-%S'`"
+LOG="experiments/logs/OBJECTNET_NETWORK_SPECIFIC.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
