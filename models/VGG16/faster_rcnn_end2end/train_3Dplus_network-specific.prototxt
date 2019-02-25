@@ -1131,7 +1131,7 @@ layer {
 layer {
   name: 'pose-label-generator'
   type: 'Python'
-  bottom: 'labels_pose'
+  bottom: 'labels'
   bottom: 'pose_azimuth'
   bottom: 'pose_elevation'
   bottom: 'pose_theta'
@@ -1140,7 +1140,7 @@ layer {
 #  top: "discrete_elevation_label"
 #  top: "discrete_theta_label"
   python_param {
-    module: 'rpn.pose_label_generator'
+    module: 'rpn.pose_label_generator_3DPlus'
     layer: 'PoseLabelGenerator'
     param_str: "{'num_classes': 13, 'num_bins': 360}"
   }

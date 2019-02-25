@@ -22,12 +22,11 @@ len=${#array[@]}
 EXTRA_ARGS=${array[@]:2:$len}
 EXTRA_ARGS_SLUG=${EXTRA_ARGS// /_}
 
-LOG="experiments/logs/FC7_REDO.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
+LOG="experiments/logs/3DPLUS_SINGLE-PATH_(train-val).txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
-NET_INIT=data/pascal_models/${NET}/train/vgg16_faster_rcnn_iter_70000.caffemodel
-#NET_INIT=data/imagenet_models/${NET}.v2.caffemodel
+NET_INIT='data/imagenet_models/VGG16.v2.caffemodel'
 
 time ./tools/train_net.py \
 	--gpu ${GPU_ID} \

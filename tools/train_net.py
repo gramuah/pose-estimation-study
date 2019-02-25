@@ -115,7 +115,6 @@ if __name__ == '__main__':
     else:
         db_naming = '3Dplus'
 
-    train_net(args.solver, roidb, output_dir,
+    train_net(args.solver, roidb, output_dir, db_naming,
               pretrained_model=args.pretrained_model,
-              max_iters=args.max_iters,
-              db_naming = db_naming)
+              max_iters=args.max_iters)
