@@ -28,10 +28,11 @@ NET_INIT='data/imagenet_models/VGG16.v2.caffemodel'
 
 time ./tools/train_net.py \
 	--gpu ${GPU_ID} \
-	--solver models/VGG16/faster_rcnn_end2end/solver_3Dplus_network-specific \
+	--solver models/VGG16/faster_rcnn_end2end/solver_3Dplus_network-specific.prototxt \
 	--weights ${NET_INIT} \
 	--imdb ${DATASET_TRAIN} \
 	--iters ${ITERS} \
+	--network_specific \
 	--cfg experiments/cfgs/faster_rcnn_end2end.yml
 
 set +x

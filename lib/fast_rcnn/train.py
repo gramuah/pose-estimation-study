@@ -24,7 +24,7 @@ class SolverWrapper(object):
     use to unnormalize the learned bounding-box regression weights.
     """
 
-    def __init__(self, solver_prototxt, roidb, output_dir, db_naming,
+    def __init__(self, solver_prototxt, roidb, output_dir, db_naming, network_specific,
                  pretrained_model=None):
         """Initialize the SolverWrapper."""
         self.output_dir = output_dir
@@ -49,7 +49,8 @@ class SolverWrapper(object):
             self.solver.net.copy_from(pretrained_model)
             
             # Clone to pose net
-            if self.db_naming == 'objectnet':
+            if network_specific:
+               print "Initializing Network Specific"
                vgg_layers = ['conv1_1', 'conv1_2', 'conv2_1', 'conv2_2', 'conv3_1',\
                               'conv3_2', 'conv3_3', 'conv4_1', 'conv4_2', 'conv4_3',\
                               'conv5_1', 'conv5_2', 'conv5_3', 'fc6', 'fc7']
@@ -140,10 +141,10 @@ def get_training_roidb(imdb):
 
     return imdb.roidb
 
-def train_net(solver_prototxt, roidb, output_dir, db_naming,
+def train_net(solver_prototxt, roidb, output_dir, db_naming, network_specific=False,
               pretrained_model=None, max_iters=40000):
     """Train a Fast R-CNN network."""
-    sw = SolverWrapper(solver_prototxt, roidb, output_dir, db_naming,
+    sw = SolverWrapper(solver_prototxt, roidb, output_dir, db_naming, network_specific,
                        pretrained_model=pretrained_model)
 
     print 'Solving...'

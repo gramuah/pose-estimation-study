@@ -530,9 +530,9 @@ layer {
   top: 'bbox_targets'
   top: 'bbox_inside_weights'
   top: 'bbox_outside_weights'
-#  top: 'pose_azimuth'
-#  top: 'pose_elevation'
-#  top: 'pose_theta'
+  top: 'pose_azimuth'
+  top: 'pose_elevation'
+  top: 'pose_theta'
   python_param {
     module: 'rpn.proposal_target_layer'
     layer: 'ProposalTargetLayer'
@@ -811,10 +811,10 @@ layer {
   bottom: "pool2_pose"
   top: "conv3_1_pose"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 256
@@ -834,10 +834,10 @@ layer {
   bottom: "conv3_1_pose"
   top: "conv3_2_pose"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 256
@@ -857,10 +857,10 @@ layer {
   bottom: "conv3_2_pose"
   top: "conv3_3_pose"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 256
@@ -891,10 +891,10 @@ layer {
   bottom: "pool3_pose"
   top: "conv4_1_pose"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -914,10 +914,10 @@ layer {
   bottom: "conv4_1_pose"
   top: "conv4_2_pose"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -937,10 +937,10 @@ layer {
   bottom: "conv4_2_pose"
   top: "conv4_3_pose"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -971,10 +971,10 @@ layer {
   bottom: "pool4_pose"
   top: "conv5_1_pose"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -994,10 +994,10 @@ layer {
   bottom: "conv5_1_pose"
   top: "conv5_2_pose"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -1017,10 +1017,10 @@ layer {
   bottom: "conv5_2_pose"
   top: "conv5_3_pose"
   param {
-    lr_mult: 1
+    lr_mult: 0
   }
   param {
-    lr_mult: 2
+    lr_mult: 0
   }
   convolution_param {
     num_output: 512
@@ -1036,29 +1036,10 @@ layer {
 }
 
 layer {
-  name: 'roi-data-pose'
-  type: 'Python'
-  bottom: 'gt_boxes'
-  bottom: 'gt_azimuths'
-  bottom: 'gt_elevations'
-  bottom: 'gt_thetas'
-  top: 'rois_pose'
-  top: 'labels_pose'
-  top: 'pose_azimuth'
-  top: 'pose_elevation'
-  top: 'pose_theta'
-  python_param {
-    module: 'rpn.proposal_target_layer'
-    layer: 'ProposalTargetLayerPose'
-    param_str: "'num_classes': 13"
-  }
-}
-
-layer {
   name: "roi_pool5_pose"
   type: "ROIPooling"
   bottom: "conv5_3_pose"
-  bottom: "rois_pose"
+  bottom: "rois"
   top: "pool5_pose"
   roi_pooling_param {
     pooled_w: 7

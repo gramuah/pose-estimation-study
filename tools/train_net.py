@@ -49,6 +49,8 @@ def parse_args():
     parser.add_argument('--set', dest='set_cfgs',
                         help='set config keys', default=None,
                         nargs=argparse.REMAINDER)
+    parser.add_argument('--network_specific', dest='network_specific',
+                        action='store_true', default=False)
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -116,5 +118,5 @@ if __name__ == '__main__':
         db_naming = '3Dplus'
 
     train_net(args.solver, roidb, output_dir, db_naming,
-              pretrained_model=args.pretrained_model,
+              args.network_specific, pretrained_model=args.pretrained_model,
               max_iters=args.max_iters)
