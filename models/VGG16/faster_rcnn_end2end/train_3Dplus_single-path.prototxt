@@ -680,6 +680,7 @@ layer {
   loss_weight: 1
 }
 
+
 layer {
   name: 'pose-label-generator'
   type: 'Python'
