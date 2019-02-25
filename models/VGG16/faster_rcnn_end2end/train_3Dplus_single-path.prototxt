@@ -374,8 +374,8 @@ layer {
   type: "Convolution"
   bottom: "conv5_3"
   top: "rpn/output"
-  param { lr_mult: 0.0 }
-  param { lr_mult: 0.0 }
+  param { lr_mult: 1.0 }
+  param { lr_mult: 1.0 }
   convolution_param {
     num_output: 512
     kernel_size: 3 pad: 1 stride: 1
@@ -395,8 +395,8 @@ layer {
   type: "Convolution"
   bottom: "rpn/output"
   top: "rpn_cls_score"
-  param { lr_mult: 0.0 }
-  param { lr_mult: 0.0 }
+  param { lr_mult: 1.0 }
+  param { lr_mult: 1.0 }
   convolution_param {
     num_output: 18   # 2(bg/fg) * 9(anchors)
     kernel_size: 1 pad: 0 stride: 1
@@ -410,8 +410,8 @@ layer {
   type: "Convolution"
   bottom: "rpn/output"
   top: "rpn_bbox_pred"
-  param { lr_mult: 0.0 }
-  param { lr_mult: 0.0 }
+  param { lr_mult: 1.0 }
+  param { lr_mult: 1.0 }
   convolution_param {
     num_output: 36   # 4 * 9(anchors)
     kernel_size: 1 pad: 0 stride: 1
