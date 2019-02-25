@@ -769,7 +769,7 @@ layer {
 layer {
   name: "pose_pred_3Dplus"
   type: "InnerProduct"
-  bottom: "fc7"
+  bottom: "fc7_pose"
   top: "pose_pred_3Dplus"
   param {
     lr_mult: 1
