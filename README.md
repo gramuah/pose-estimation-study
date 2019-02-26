@@ -14,12 +14,12 @@ This repository is released under the MIT License (refer to the LICENSE file for
 
 If you make use of this data and software, please cite the following reference in any publications:
 
-	@Article{Onoro-Rubio2018,
-	author 	= {O\~noro-Rubio, D. and L\'opez-Sastre, R.~J. and Redondo-Cabrera, C. and Gil-Jim\'enez, P.},
-	title   = {The challenge of simultaneous object detection and pose estimation: a comparative study},
-	journal = {IMAVIS},
-	year    = {2018},
-	}
+    @Article{Onoro-Rubio2018,
+    author     = {O\~noro-Rubio, D. and L\'opez-Sastre, R.~J. and Redondo-Cabrera, C. and Gil-Jim\'enez, P.},
+    title   = {The challenge of simultaneous object detection and pose estimation: a comparative study},
+    journal = {IMAVIS},
+    year    = {2018},
+    }
 
 
 ## Contents
@@ -50,7 +50,7 @@ If you make use of this data and software, please cite the following reference i
 
 ## Requirements: hardware
 
-1. For training the models is required a GPU with at least 6 GB of memory and CUDA support.
+1. For training, the models are required a GPU with at least 6 GB of memory and CUDA support.
 
 
 ## Installation
@@ -84,6 +84,15 @@ Step 4: Build Caffe and pycaffe
     make -j8 && make pycaffe
     ```
 
+Step 5: Downloading datasets
+
+In order to test or to train any of the models included in this repository, it is needed one of the following datasets:
+
+* PASCAL3D+: [http://cvgl.stanford.edu/projects/pascal3d.html](http://cvgl.stanford.edu/projects/pascal3d.html)
+* ObjectNet3D: [http://cvgl.stanford.edu/projects/objectnet3d](http://cvgl.stanford.edu/projects/objectnet3d)
+
+The datasets must be manually downloaded from the author's platform and placed in the `data` directory.
+
 ## Download pre-trained models
 
 Pre-trained models can be obtained by running the following script:
@@ -95,7 +104,9 @@ cd $PROJECT_ROOT
 
 ## Usage
 
-To train and test our simultaneous object detection and pose estimation models use the corresponding scripts: 
+This repository includes the code needed to perform a complete training and testing of any of the proposed models (i.e.: `Single-path`, `Specific-path`, and `Specific-network`) by using the PASCAL3D+ or the ObjectNet3D. All the running scripts are located in: `experiments/scripts`.
+
+As an example, to train and test our `Single-path` on the ObjectNet3D, just execute: 
 
 ```Shell
 cd $PROJECT_ROOT
@@ -103,7 +114,7 @@ cd $PROJECT_ROOT
 # GPU_ID is the GPU you want to train on
 ```
 
-Output is written underneath `$PROJECT_ROOT/output`.
+The output is written underneath `$PROJECT_ROOT/output`.
 
 
 Trained models are saved under:
@@ -120,7 +131,7 @@ output/<experiment directory>/<dataset name>/<network snapshot name>/
 
 ## Demo: test
 
-We provide the pretrained models of our SPECIFIC-NETWORK model, hence it is possible to run the test.
+We provide the pre-trained models of our SPECIFIC-NETWORK model, hence it is possible to run the test.
 
 To run the test on the Pascal3DPlus just execute: 
 
