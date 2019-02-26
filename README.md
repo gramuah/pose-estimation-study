@@ -97,37 +97,37 @@ The datasets must be manually downloaded from the author's platform and placed i
 
 Pre-trained models can be obtained by running the following script:
 
-```Shell
-cd $PROJECT_ROOT
-./data/scripts/fetch_models.sh
-```
+    ```Shell
+    cd $PROJECT_ROOT
+    ./data/scripts/fetch_models.sh
+    ```
 
 ## Usage
 
-This repository includes the code needed to perform a complete training and testing of any of the proposed models (i.e.: `Single-path`, `Specific-path`, and `Specific-network`) by using the PASCAL3D+ or the ObjectNet3D. All the running scripts are located in: `experiments/scripts`.
+This repository includes the code needed to perform a complete training and testing of any of the proposed models (i.e.: `Single-path`, `Specific-path`, and `Specific-network`) by using the PASCAL3D+ or the ObjectNet3D. All the running scripts are located in: `experiments/scripts/<experiment>.sh`.
 
 As an example, to train and test our `Single-path` on the ObjectNet3D, just execute: 
 
-```Shell
-cd $PROJECT_ROOT
-./experiments/scripts/objectnet_single-path.sh [GPU_ID]
-# GPU_ID is the GPU you want to train on
-```
+    ```Shell
+    cd $PROJECT_ROOT
+    ./experiments/scripts/objectnet_single-path.sh [GPU_ID]
+    # GPU_ID is the GPU you want to train on
+    ```
 
 The output is written underneath `$PROJECT_ROOT/output`.
 
 
 Trained models are saved under:
 
-```
-output/<experiment directory>/<dataset name>/
-```
+    ```
+    output/<experiment directory>/<dataset name>/
+    ```
 
 Test outputs are saved under:
 
-```
-output/<experiment directory>/<dataset name>/<network snapshot name>/
-```
+    ```
+    output/<experiment directory>/<dataset name>/<network snapshot name>/
+    ```
 
 ## Demo: test
 
@@ -135,16 +135,16 @@ We provide the pre-trained models of our SPECIFIC-NETWORK model, hence it is pos
 
 To run the test on the Pascal3DPlus just execute: 
 
-```Shell
-cd $PROJECT_ROOT
-./experiments/scripts/demo_pascal_3D_network-specific [GPU_ID]
-# GPU_ID is the GPU you want to train on
-```
+    ```Shell
+    cd $PROJECT_ROOT
+    ./experiments/scripts/demo_pascal_3D_network-specific [GPU_ID]
+    # GPU_ID is the GPU you want to train on
+    ```
 
 Or to run it for the ObjectNet3D, execute: 
 
-```Shell
-cd $PROJECT_ROOT
-./experiments/scripts/demo_objectnet_network-specific.sh [GPU_ID]
-# GPU_ID is the GPU you want to train on
-```
+    ```Shell
+    cd $PROJECT_ROOT
+    ./experiments/scripts/demo_objectnet_network-specific.sh [GPU_ID]
+    # GPU_ID is the GPU you want to train on
+    ```
