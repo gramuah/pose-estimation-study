@@ -3,7 +3,7 @@
 By Daniel Oñoro-Rubio, Roberto J. López-Sastre, Carolina Redondo-Cabrera and Pedro Gil-Jiménez.
 
 
-This is a repository with the original implementation of the object detection and pose estimation solutions described in our [IMAVIS  journal paper](https://arxiv.org/abs/1801.08110). 
+This is a repository with the original implementation of the object detection and pose estimation solutions described in our [IMAVIS  journal paper](https://doi.org/10.1016/j.imavis.2018.09.013). 
 
 
 ### License
@@ -19,6 +19,10 @@ If you make use of this data and software, please cite the following reference i
     title   = {The challenge of simultaneous object detection and pose estimation: a comparative study},
     journal = {IMAVIS},
     year    = {2018},
+    volume = {79},
+    pages = {109-122},
+    issn = {0262-8856},
+    doi = {https://doi.org/10.1016/j.imavis.2018.09.013},
     }
 
 
