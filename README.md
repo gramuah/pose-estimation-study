@@ -99,12 +99,7 @@ The datasets must be manually downloaded from the author's platform and placed i
 
 ## Download pre-trained models
 
-Pre-trained models can be obtained by running the following script:
-
-    ```Shell
-    cd $PROJECT_ROOT
-    ./data/scripts/fetch_models.sh
-    ```
+Direct links to download the pre-trained models can be accessed in the file [data/scripts/README.md](data/scripts/README.md).
 
 ## Usage
 
